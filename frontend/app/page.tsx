@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/Button";
+import { FishAnimation } from "@/components/FishAnimation";
 import { Montserrat, Poppins } from "next/font/google";
 
 const montserrat = Montserrat({
@@ -25,11 +26,14 @@ export default function Home() {
           alt="Underwater Background"
           fill
           priority
-          className="object-cover object-center"
+          className="object-cover object-center bg-black"
           quality={100}
         />
         {/* Overlay for better text readability if needed, though design seems to rely on the image's dark vibe */}
         <div className="absolute inset-0 bg-navy-900/20 mix-blend-multiply" />
+
+        {/* Fish Animation */}
+        <FishAnimation />
       </div>
 
       {/* Navbar */}
