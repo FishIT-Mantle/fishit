@@ -60,7 +60,7 @@ export default function Home() {
             </h1>
 
             {/* Bubble Asset */}
-            <div className="relative w-16 h-16 md:w-20 md:h-20 animate-bounce duration-[3000ms]">
+            <div className="relative w-16 h-16 md:w-20 md:h-20">
               <Image
                 src="/images/bubble.webp"
                 alt="Bubbles"
