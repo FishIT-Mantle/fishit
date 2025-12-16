@@ -33,17 +33,15 @@ export default function Home() {
       </div>
 
       {/* Navbar */}
-      <nav className="fixed top-8 left-8 z-50 flex items-center gap-3">
-        {/* Placeholder for Icon - using a simple SVG or text for now based on description */}
-        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-transparent border border-white/20 backdrop-blur-sm text-white">
-          {/* Simple 'F' icon representation or svg */}
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-5 h-5" strokeWidth="2.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-        </div>
-        <span className={`${poppins.className} text-[22px] font-bold text-white tracking-wide shadow-black/20 drop-shadow-lg`}>
-          Fish It
-        </span>
+      <nav className="fixed top-8 left-8 z-50 flex items-center">
+        <Image
+          src="/images/logo-name.webp"
+          alt="Fish It Logo"
+          width={180}
+          height={60}
+          className="object-contain h-12 w-auto"
+          priority
+        />
       </nav>
 
       {/* Main Content */}
