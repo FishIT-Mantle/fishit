@@ -19,9 +19,7 @@ export default function Dashboard() {
                     className="object-cover object-center"
                     quality={100}
                 />
-                {/* Dark Overlay for Readability */}
-                <div className="absolute inset-0 bg-[#0D1936]/80 mix-blend-multiply" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0D1936] via-transparent to-[#0D1936]/40" />
+
 
                 {/* Animated Fish Background */}
                 <FishAnimation />
@@ -46,27 +44,27 @@ export default function Dashboard() {
                     </Link>
 
                     {/* Navigation Pills */}
-                    <div className="flex items-center p-1 bg-white/5 backdrop-blur-md rounded-full border border-white/10">
-                        <button className="px-6 py-2 rounded-full text-sm font-medium bg-[#5A3BCE] text-white shadow-lg shadow-indigo-500/30 transition-all hover:scale-105">
+                    <div className="flex items-center gap-2">
+                        <button className="px-8 py-2.5 rounded-full text-sm font-medium bg-[#5A3BCE] text-white transition-all shadow-[0_4px_10px_rgba(90,59,206,0.5)]">
                             Fishing
                         </button>
-                        <button className="px-6 py-2 rounded-full text-sm font-medium text-gray-300 hover:text-white transition-all hover:bg-white/5">
+                        <button className="px-8 py-2.5 rounded-full text-sm font-medium bg-transparent text-white border border-white/20 hover:bg-white/5 transition-all">
                             Marketplace
                         </button>
                     </div>
 
                     {/* Connect Wallet */}
-                    <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#5A3BCE] hover:bg-[#4c32b3] text-white text-sm font-medium transition-all hover:shadow-lg hover:shadow-indigo-500/20 active:scale-95">
+                    <button className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#5A3BCE] hover:bg-[#4c32b3] hover:shadow-lg hover:shadow-indigo-500/20 text-white text-sm font-medium transition-all">
                         Connect Wallet
                     </button>
                 </nav>
 
                 {/* Welcome Section */}
                 <header className="mb-8">
-                    <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 drop-shadow-lg">
+                    <h1 className="text-3xl md:text-4xl font-normal text-white mb-2 drop-shadow-lg">
                         Welcome to Fish It
                     </h1>
-                    <p className="text-blue-100/80 text-base md:text-lg max-w-2xl">
+                    <p className="text-white/50 text-base md:text-lg max-w-2xl">
                         Stake MNT, catch unique AI-generated fish NFTs, and boost your real yield.
                     </p>
                 </header>
@@ -78,55 +76,50 @@ export default function Dashboard() {
                     <aside className="lg:col-span-3 flex flex-col gap-4">
 
                         {/* Card: Energy */}
-                        <div className="relative overflow-hidden group bg-[#112247]/90 backdrop-blur-sm border border-white/5 rounded-2xl p-6 shadow-xl transition-all hover:border-white/10 hover:shadow-cyan-500/10">
-                            {/* Inner Glow */}
-                            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent opacity-50" />
-
+                        <div className="relative overflow-hidden bg-[rgba(17,34,71,0.85)] backdrop-blur-[8px] border border-white/15 rounded-2xl p-6 shadow-[0_4px_30px_rgba(0,0,0,0.2),0_0_20px_rgba(79,127,255,0.2)]">
                             <div className="relative z-10">
                                 <div className="flex items-center gap-3 mb-4">
                                     <div className="p-2 rounded-full bg-white/5">
-                                        <Zap className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                                        <Zap className="w-5 h-5 text-purple-400 fill-purple-400" />
                                     </div>
-                                    <span className="text-sm font-medium text-blue-100/70">Your Energy</span>
+                                    <span className="text-sm font-medium text-white">Your Energy</span>
                                 </div>
                                 <div className="text-5xl font-bold text-white tracking-tight mb-1">
                                     25
                                 </div>
-                                <div className="text-sm text-blue-200/50">Energy</div>
+                                <div className="text-sm text-gray-400">Energy</div>
                             </div>
                         </div>
 
                         {/* Card: Collection */}
-                        <div className="relative overflow-hidden group bg-[#112247]/90 backdrop-blur-sm border border-white/5 rounded-2xl p-6 shadow-xl transition-all hover:border-white/10 hover:shadow-cyan-500/10">
-                            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-50" />
+                        <div className="relative overflow-hidden bg-[rgba(17,34,71,0.85)] backdrop-blur-[8px] border border-white/15 rounded-2xl p-6 shadow-[0_4px_30px_rgba(0,0,0,0.2),0_0_20px_rgba(79,127,255,0.2)]">
                             <div className="relative z-10">
                                 <div className="flex items-center gap-3 mb-4">
                                     <div className="p-2 rounded-full bg-white/5">
-                                        <Fish className="w-5 h-5 text-cyan-400" />
+                                        <Fish className="w-5 h-5 text-blue-400" />
                                     </div>
-                                    <span className="text-sm font-medium text-blue-100/70">Collection</span>
+                                    <span className="text-sm font-medium text-white">Collection</span>
                                 </div>
                                 <div className="text-5xl font-bold text-white tracking-tight mb-1">
                                     0
                                 </div>
-                                <div className="text-sm text-blue-200/50">Fish Collection</div>
+                                <div className="text-sm text-gray-400">Fish Collection</div>
                             </div>
                         </div>
 
                         {/* Card: Token */}
-                        <div className="relative overflow-hidden group bg-[#112247]/90 backdrop-blur-sm border border-white/5 rounded-2xl p-6 shadow-xl transition-all hover:border-white/10 hover:shadow-cyan-500/10">
-                            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-50" />
+                        <div className="relative overflow-hidden bg-[rgba(17,34,71,0.85)] backdrop-blur-[8px] border border-white/15 rounded-2xl p-6 shadow-[0_4px_30px_rgba(0,0,0,0.2),0_0_20px_rgba(79,127,255,0.2)]">
                             <div className="relative z-10">
                                 <div className="flex items-center gap-3 mb-4">
                                     <div className="p-2 rounded-full bg-white/5">
                                         <Coins className="w-5 h-5 text-purple-400" />
                                     </div>
-                                    <span className="text-sm font-medium text-blue-100/70">Token</span>
+                                    <span className="text-sm font-medium text-white">Token</span>
                                 </div>
                                 <div className="text-5xl font-bold text-white tracking-tight mb-1">
                                     0
                                 </div>
-                                <div className="text-sm text-blue-200/50">MNT</div>
+                                <div className="text-sm text-gray-400">MNT</div>
                             </div>
                         </div>
 
@@ -134,18 +127,18 @@ export default function Dashboard() {
 
                     {/* Right Column: Aquarium (70%) -> span 8/12 */}
                     <section className="lg:col-span-9 flex flex-col">
-                        <div className="relative flex-1 flex flex-col bg-[#112247]/90 backdrop-blur-sm border border-white/5 rounded-2xl p-6 md:p-8 shadow-xl overflow-hidden min-h-[500px]">
+                        <div className="relative flex-1 flex flex-col bg-[rgba(17,34,71,0.85)] backdrop-blur-[8px] border border-white/15 rounded-2xl p-6 md:p-8 shadow-[0_4px_30px_rgba(0,0,0,0.2),0_0_20px_rgba(79,127,255,0.2)] overflow-hidden min-h-[500px]">
 
                             {/* Header */}
                             <div className="flex items-center justify-between mb-8 z-10">
-                                <h2 className="text-xl md:text-2xl font-semibold text-white">My Aquarium</h2>
+                                <h2 className="text-xl md:text-2xl font-normal text-white">My Aquarium</h2>
 
                                 <div className="flex items-center gap-4">
-                                    <button className="p-3 rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all hover:rotate-180 duration-500 border border-white/5">
+                                    <button className="p-3 rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all border border-white/10">
                                         <RotateCw className="w-5 h-5" />
                                     </button>
 
-                                    <button className="px-8 py-3 rounded-full bg-[#5A3BCE] hover:bg-[#4c32b3] text-white font-medium shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:scale-95 transition-all duration-300">
+                                    <button className="px-8 py-3 rounded-full bg-[#5A3BCE] hover:bg-[#4c32b3] text-white font-medium transition-all shadow-lg shadow-indigo-500/20">
                                         Cast Line
                                     </button>
                                 </div>
@@ -155,28 +148,19 @@ export default function Dashboard() {
                             <div className="flex-1 flex flex-col items-center justify-center text-center z-10 relative">
 
                                 {/* 3D Wallet / Placeholder Icon */}
-                                <div className="relative w-32 h-32 mb-6 group">
-                                    <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full group-hover:bg-blue-500/30 transition-all duration-500" />
-
-                                    {/* Using Lucide Wallet as placeholder for 3D asset */}
-                                    <div className="relative w-full h-full flex items-center justify-center">
-                                        <Wallet className="w-24 h-24 text-blue-300/80 drop-shadow-2xl transform group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500 ease-out" strokeWidth={1} />
-                                    </div>
+                                <div className="relative w-24 h-24 mb-6 flex items-center justify-center">
+                                    {/* Using Lucide Wallet as main focal point */}
+                                    <Wallet className="w-16 h-16 text-blue-300/80 drop-shadow-xl" strokeWidth={1} />
                                 </div>
 
-                                <h3 className="text-2xl font-bold text-white mb-3">
+                                <h3 className="text-xl font-bold text-white mb-2">
                                     Connect Your Wallet First
                                 </h3>
-                                <p className="text-blue-200/60 max-w-md mx-auto leading-relaxed">
+                                <p className="text-gray-400 max-w-md mx-auto">
                                     Stake at least 1 MNT to unlock Energy and access the fishing gameplay.
                                 </p>
 
                             </div>
-
-                            {/* Decorative Background Elements inside Card */}
-                            <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 blur-[100px] rounded-full pointer-events-none" />
-                            <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 blur-[80px] rounded-full pointer-events-none" />
-
                         </div>
                     </section>
 
