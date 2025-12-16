@@ -1,11 +1,28 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { FishAnimation } from "@/components/FishAnimation"
+import { Button } from "@/components/Button"
 import { Zap, Fish, Coins, RotateCw, Wallet } from "lucide-react"
 
 export default function Dashboard() {
+    const [isScrolled, setIsScrolled] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            if (window.scrollY > 50) {
+                setIsScrolled(true);
+            } else {
+                setIsScrolled(false);
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
     return (
         <div className="relative min-h-screen overflow-hidden bg-[#0D1936] text-white font-sans selection:bg-cyan-500/30">
 
@@ -26,37 +43,81 @@ export default function Dashboard() {
             </div>
 
             {/* --- Content Content --- */}
-            <div className="relative z-10 flex flex-col min-h-screen px-6 py-6 md:px-10 lg:px-14 max-w-[1920px] mx-auto">
+            <div className="relative z-10 flex flex-col min-h-screen px-6 pt-32 pb-6 md:px-10 lg:px-14 max-w-[1920px] mx-auto">
 
-                {/* Navbar */}
-                <nav className="flex flex-wrap items-center justify-between gap-4 mb-10">
-                    {/* Logo */}
-                    <Link href="/" className="flex-shrink-0">
-                        <div className="relative h-12 w-40">
+                {/* Navbar - Dynamic Shrinking & Sticky */}
+                <nav
+                    className={`
+                        fixed z-50 flex items-center justify-between transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] left-1/2 -translate-x-1/2 border-white/5
+                        ${isScrolled
+                            ? 'top-6 w-[680px] max-w-[92vw] px-6 py-2 bg-[#112247]/80 backdrop-blur-md rounded-full border shadow-[0_8px_32px_rgba(0,0,0,0.3)]'
+                            : 'top-0 w-full max-w-full px-6 md:px-16 py-6 bg-transparent'
+                        }
+                    `}
+                >
+                    {/* Left: Logo */}
+                    <Link href="/" className="block relative flex-shrink-0 transition-all group z-20">
+                        <div className={`relative transition-all duration-500 ${isScrolled ? 'w-24 h-8' : 'w-32 md:w-40 h-10'}`}>
                             <Image
                                 src="/images/logo-name.webp"
                                 alt="Fish It"
                                 fill
-                                className="object-contain object-left"
+                                className="object-contain object-left group-hover:opacity-90 transition-opacity"
                                 priority
                             />
                         </div>
                     </Link>
 
-                    {/* Navigation Pills */}
-                    <div className="flex items-center gap-2">
-                        <button className="px-8 py-2.5 rounded-full text-sm font-medium bg-[#5A3BCE] text-white transition-all shadow-[0_4px_10px_rgba(90,59,206,0.5)]">
+                    {/* Center: Main Navigation (Visible Only When SCROLL TOP) */}
+                    <div
+                        className={`
+                            absolute left-1/2 -translate-x-1/2 flex items-center p-1 bg-[#1D264F] rounded-full border border-white/10 shadow-lg backdrop-blur-md transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] z-10
+                            ${isScrolled
+                                ? 'opacity-0 scale-90 pointer-events-none translate-y-4'
+                                : 'opacity-100 scale-100 translate-y-0'
+                            }
+                        `}
+                    >
+                        <button className="px-8 py-2.5 rounded-full text-sm font-medium bg-[#5A3BCE] text-white shadow-lg shadow-indigo-500/40 transition-all">
                             Fishing
                         </button>
-                        <button className="px-8 py-2.5 rounded-full text-sm font-medium bg-transparent text-white border border-white/20 hover:bg-white/5 transition-all">
+                        <button className="px-8 py-2.5 rounded-full text-sm font-medium text-gray-300 hover:text-white transition-all hover:bg-white/5">
                             Marketplace
                         </button>
                     </div>
 
-                    {/* Connect Wallet */}
-                    <button className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#5A3BCE] hover:bg-[#4c32b3] hover:shadow-lg hover:shadow-indigo-500/20 text-white text-sm font-medium transition-all">
-                        Connect Wallet
-                    </button>
+                    {/* Right Group: Scrolled Nav Item + Wallet */}
+                    <div className="flex items-center gap-2 z-20">
+
+                        {/* "Fishing" Button (Visible Only When SCROLLED) */}
+                        <div
+                            className={`
+                                overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]
+                                ${isScrolled
+                                    ? 'w-[70px] opacity-100 mr-2'
+                                    : 'w-0 opacity-0 mr-0'
+                                }
+                            `}
+                        >
+                            <button className="w-full text-sm font-medium text-white hover:text-cyan-300 transition-colors whitespace-nowrap">
+                                Fishing
+                            </button>
+                        </div>
+
+                        {/* Connect Wallet */}
+                        <div className="flex-shrink-0">
+                            <Button
+                                variant="primary"
+                                className={`
+                                    bg-[#5A3BCE] hover:bg-[#4c32b3] transition-all duration-500 shadow-lg shadow-indigo-500/20
+                                    ${isScrolled ? '!h-9 !text-xs !px-5 !rounded-full' : '!h-11 !text-sm !px-6'}
+                                `}
+                            >
+                                Connect Wallet
+                            </Button>
+                        </div>
+
+                    </div>
                 </nav>
 
                 {/* Welcome Section */}
