@@ -55,12 +55,12 @@ export default function Home() {
         <div className="flex flex-col items-center">
           {/* Title with decorative elements */}
           <div className="relative flex items-center justify-center gap-4">
-            <h1 className={`${montserrat.className} text-[80px] md:text-[100px] leading-tight font-bold text-white drop-shadow-[0_0_25px_rgba(100,200,255,0.4)]`}>
+            <h1 className={`${montserrat.className} text-[80px] md:text-[100px] leading-tight font-normal text-white drop-shadow-[0_0_25px_rgba(100,200,255,0.4)]`}>
               Fish It
             </h1>
 
             {/* Bubble Asset */}
-            <div className="relative w-16 h-16 md:w-20 md:h-20 animate-bounce duration-[3000ms]">
+            <div className="relative w-16 h-16 md:w-20 md:h-20">
               <Image
                 src="/images/bubble.webp"
                 alt="Bubbles"
