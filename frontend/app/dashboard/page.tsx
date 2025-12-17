@@ -5,7 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { FishAnimation } from "@/components/FishAnimation"
 import { Button } from "@/components/Button"
-import { Zap, Fish, Coins, RotateCw, Wallet } from "lucide-react"
+import { RotateCw } from "lucide-react"
 
 export default function Dashboard() {
     const [isScrolled, setIsScrolled] = useState(false);
@@ -117,15 +117,15 @@ export default function Dashboard() {
                     <aside className="lg:col-span-3 flex flex-col gap-4">
 
                         {/* Card: Energy */}
-                        <div className="relative overflow-hidden bg-[rgba(17,34,71,0.85)] backdrop-blur-[8px] border border-white/15 rounded-2xl p-6 shadow-[0_4px_30px_rgba(0,0,0,0.2),0_0_20px_rgba(79,127,255,0.2)]">
+                        <div className="relative h-[214px] overflow-hidden rounded-2xl p-6 backdrop-blur-xl bg-[radial-gradient(120%_120%_at_80%_20%,rgba(120,140,255,0.35)_0%,rgba(40,60,140,0.35)_45%,rgba(20,35,80,0.45)_100%)] border border-white/25 shadow-[0_8px_40px_rgba(0,0,0,0.25),0_0_25px_rgba(120,140,255,0.35)]">
                             <div className="relative z-10">
                                 <div className="flex items-center gap-3 mb-4">
-                                    <div className="p-2 rounded-full bg-white/5">
-                                        <Zap className="w-5 h-5 text-purple-400 fill-purple-400" />
-                                    </div>
-                                    <span className="text-sm font-medium text-white">Your Energy</span>
+
+                                    <Image src="/icons/energy-icon.webp" alt="Energy" width={48} height={48} className="w-12 h-12 object-contain" />
+
+                                    <span className="text-2xl font-medium text-white">Your Energy</span>
                                 </div>
-                                <div className="text-5xl font-bold text-white tracking-tight mb-1">
+                                <div className="text-5xl font-semibold text-white tracking-tight mb-1">
                                     25
                                 </div>
                                 <div className="text-sm text-gray-400">Energy</div>
@@ -133,15 +133,15 @@ export default function Dashboard() {
                         </div>
 
                         {/* Card: Collection */}
-                        <div className="relative overflow-hidden bg-[rgba(17,34,71,0.85)] backdrop-blur-[8px] border border-white/15 rounded-2xl p-6 shadow-[0_4px_30px_rgba(0,0,0,0.2),0_0_20px_rgba(79,127,255,0.2)]">
+                        <div className="relative h-[214px] overflow-hidden rounded-2xl p-6 backdrop-blur-xl bg-[radial-gradient(120%_120%_at_80%_20%,rgba(120,140,255,0.35)_0%,rgba(40,60,140,0.35)_45%,rgba(20,35,80,0.45)_100%)] border border-white/25 shadow-[0_8px_40px_rgba(0,0,0,0.25),0_0_25px_rgba(120,140,255,0.35)]">
                             <div className="relative z-10">
                                 <div className="flex items-center gap-3 mb-4">
-                                    <div className="p-2 rounded-full bg-white/5">
-                                        <Fish className="w-5 h-5 text-blue-400" />
-                                    </div>
-                                    <span className="text-sm font-medium text-white">Collection</span>
+
+                                    <Image src="/icons/collection-icon.webp" alt="Collection" width={48} height={48} className="w-12 h-12 object-contain" />
+
+                                    <span className="text-2xl font-medium text-white">Collection</span>
                                 </div>
-                                <div className="text-5xl font-bold text-white tracking-tight mb-1">
+                                <div className="text-5xl font-semibold text-white tracking-tight mb-1">
                                     0
                                 </div>
                                 <div className="text-sm text-gray-400">Fish Collection</div>
@@ -149,15 +149,15 @@ export default function Dashboard() {
                         </div>
 
                         {/* Card: Token */}
-                        <div className="relative overflow-hidden bg-[rgba(17,34,71,0.85)] backdrop-blur-[8px] border border-white/15 rounded-2xl p-6 shadow-[0_4px_30px_rgba(0,0,0,0.2),0_0_20px_rgba(79,127,255,0.2)]">
+                        <div className="relative h-[214px] overflow-hidden rounded-2xl p-6 backdrop-blur-xl bg-[radial-gradient(120%_120%_at_80%_20%,rgba(120,140,255,0.35)_0%,rgba(40,60,140,0.35)_45%,rgba(20,35,80,0.45)_100%)] border border-white/25 shadow-[0_8px_40px_rgba(0,0,0,0.25),0_0_25px_rgba(120,140,255,0.35)]">
                             <div className="relative z-10">
                                 <div className="flex items-center gap-3 mb-4">
-                                    <div className="p-2 rounded-full bg-white/5">
-                                        <Coins className="w-5 h-5 text-purple-400" />
-                                    </div>
-                                    <span className="text-sm font-medium text-white">Token</span>
+
+                                    <Image src="/icons/token-icon.webp" alt="Token" width={48} height={48} className="w-12 h-12 object-contain" />
+
+                                    <span className="text-2xl font-medium text-white">Token</span>
                                 </div>
-                                <div className="text-5xl font-bold text-white tracking-tight mb-1">
+                                <div className="text-5xl font-semibold text-white tracking-tight mb-1">
                                     0
                                 </div>
                                 <div className="text-sm text-gray-400">MNT</div>
@@ -168,8 +168,7 @@ export default function Dashboard() {
 
                     {/* Right Column: Aquarium (70%) -> span 8/12 */}
                     <section className="lg:col-span-9 flex flex-col">
-                        <div className="relative flex-1 flex flex-col bg-[rgba(17,34,71,0.85)] backdrop-blur-[8px] border border-white/15 rounded-2xl p-6 md:p-8 shadow-[0_4px_30px_rgba(0,0,0,0.2),0_0_20px_rgba(79,127,255,0.2)] overflow-hidden min-h-[500px]">
-
+                        <div className="relative flex-1 flex flex-col overflow-hidden rounded-2xl p-6 md:p-8 backdrop-blur-xl bg-[radial-gradient(120%_120%_at_80%_20%,rgba(120,140,255,0.30)_0%,rgba(40,60,140,0.35)_45%,rgba(20,35,80,0.50)_100%)] border border-white/25 shadow-[0_8px_40px_rgba(0,0,0,0.25),0_0_25px_rgba(120,140,255,0.30)] min-h-[500px]">
                             {/* Header */}
                             <div className="flex items-center justify-between mb-8 z-10">
                                 <h2 className="text-xl md:text-2xl font-normal text-white">My Aquarium</h2>
@@ -190,8 +189,7 @@ export default function Dashboard() {
 
                                 {/* 3D Wallet / Placeholder Icon */}
                                 <div className="relative w-24 h-24 mb-6 flex items-center justify-center">
-                                    {/* Using Lucide Wallet as main focal point */}
-                                    <Wallet className="w-16 h-16 text-blue-300/80 drop-shadow-xl" strokeWidth={1} />
+                                    <Image src="/icons/wallet-icon.webp" alt="Connect Wallet" width={96} height={96} className="object-contain drop-shadow-xl opacity-90" />
                                 </div>
 
                                 <h3 className="text-xl font-bold text-white mb-2">
