@@ -6,6 +6,8 @@ import Link from "next/link"
 import { FishAnimation } from "@/components/FishAnimation"
 import { Button } from "@/components/Button"
 import { RotateCw } from "lucide-react"
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useDisconnect } from 'wagmi';
 
 export default function Dashboard() {
     const [isScrolled, setIsScrolled] = useState(false);
@@ -88,15 +90,88 @@ export default function Dashboard() {
 
                     {/* Right Group: Wallet Only */}
                     <div className="flex items-center gap-4 z-20 pr-1">
-                        <Button
-                            variant="primary"
-                            className={`
-                                bg-[#5448E8] hover:bg-[#4839d3] transition-all duration-500 shadow-lg shadow-indigo-500/20
-                                ${isScrolled ? '!h-11 !text-sm !px-6 !rounded-full' : '!h-12 !text-base !px-8'}
-                            `}
-                        >
-                            Connect Wallet
-                        </Button>
+                        <ConnectButton.Custom>
+                            {({
+                                account,
+                                chain,
+                                openAccountModal,
+                                openChainModal,
+                                openConnectModal,
+                                authenticationStatus,
+                                mounted,
+                            }: any) => {
+                                const ready = mounted && authenticationStatus !== 'loading';
+                                const connected =
+                                    ready &&
+                                    account &&
+                                    chain &&
+                                    (!authenticationStatus ||
+                                        authenticationStatus === 'authenticated');
+
+                                return (
+                                    <div
+                                        {...(!ready && {
+                                            'aria-hidden': true,
+                                            'style': {
+                                                opacity: 0,
+                                                pointerEvents: 'none',
+                                                userSelect: 'none',
+                                            },
+                                        })}
+                                    >
+                                        {(() => {
+                                            if (!connected) {
+                                                return (
+                                                    <Button
+                                                        onClick={openConnectModal}
+                                                        variant="primary"
+                                                        className={`
+                                                            bg-[#5448E8] hover:bg-[#4839d3] transition-all duration-500 shadow-lg shadow-indigo-500/20
+                                                            ${isScrolled ? '!h-11 !text-sm !px-6 !rounded-full' : '!h-12 !text-base !px-8'}
+                                                        `}
+                                                    >
+                                                        Connect Wallet
+                                                    </Button>
+                                                );
+                                            }
+
+                                            if (chain.unsupported) {
+                                                return (
+                                                    <Button
+                                                        onClick={openChainModal}
+                                                        variant="primary"
+                                                        className={`
+                                                            bg-red-500 hover:bg-red-600 transition-all duration-500 shadow-lg shadow-red-500/20
+                                                            ${isScrolled ? '!h-11 !text-sm !px-6 !rounded-full' : '!h-12 !text-base !px-8'}
+                                                        `}
+                                                    >
+                                                        Wrong Network
+                                                    </Button>
+                                                );
+                                            }
+
+                                            return (
+                                                <div style={{ display: 'flex', gap: 12 }}>
+                                                    <Button
+                                                        onClick={openAccountModal}
+                                                        variant="primary"
+                                                        className={`
+                                                            bg-[#5448E8] hover:bg-[#4839d3] transition-all duration-500 shadow-lg shadow-indigo-500/20
+                                                            ${isScrolled ? '!h-11 !text-sm !px-6 !rounded-full' : '!h-12 !text-base !px-8'}
+                                                        `}
+                                                    >
+                                                        {account.displayName}
+                                                        {account.displayBalance
+                                                            ? ` (${account.displayBalance})`
+                                                            : ''}
+                                                    </Button>
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+                                );
+                            }}
+                        </ConnectButton.Custom>
                     </div>
                 </nav>
 
