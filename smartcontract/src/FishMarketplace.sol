@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {IERC721} from "@openzeppelin/token/ERC721/IERC721.sol";
 import {
     IERC721Receiver
-} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+} from "@openzeppelin/token/ERC721/IERC721Receiver.sol";
 import {IFishItStaking} from "./FishItStaking.sol";
 
 contract FishMarketplace is IERC721Receiver {
