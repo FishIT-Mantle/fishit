@@ -55,7 +55,7 @@ export default function Home() {
         <div className="flex flex-col items-center">
           {/* Title with decorative elements */}
           <div className="relative flex items-center justify-center gap-4">
-            <h1 className={`${montserrat.className} text-[80px] md:text-[100px] leading-tight font-bold text-white drop-shadow-[0_0_25px_rgba(100,200,255,0.4)]`}>
+            <h1 className={`${montserrat.className} text-[80px] md:text-[100px] leading-tight font-normal text-white drop-shadow-[0_0_25px_rgba(100,200,255,0.4)]`}>
               Fish It
             </h1>
 

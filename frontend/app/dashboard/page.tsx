@@ -48,16 +48,16 @@ export default function Dashboard() {
                 {/* Navbar - Dynamic Shrinking & Sticky */}
                 <nav
                     className={`
-                        fixed z-50 flex items-center justify-between transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] left-1/2 -translate-x-1/2 border-white/5
+                        fixed z-50 flex items-center justify-between transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] left-1/2 -translate-x-1/2
                         ${isScrolled
-                            ? 'top-6 w-[680px] max-w-[92vw] px-6 py-2 bg-[#112247]/80 backdrop-blur-md rounded-full border shadow-[0_8px_32px_rgba(0,0,0,0.3)]'
-                            : 'top-0 w-full max-w-full px-6 md:px-16 py-6 bg-transparent'
+                            ? 'top-6 w-[95%] max-w-[1200px] px-4 py-3 rounded-full bg-[#283778]/35 backdrop-blur-xl border border-white/20 shadow-lg bg-[linear-gradient(90deg, rgba(92,100,204,0.9)_0%, rgba(92,100,204,0)_30%, rgba(92,100,204,0)_70%, rgba(92,100,204,0.9)_100%)]'
+                            : 'top-0 w-full max-w-full px-6 md:px-12 py-6 bg-transparent border-b border-transparent'
                         }
                     `}
                 >
                     {/* Left: Logo */}
-                    <Link href="/" className="block relative flex-shrink-0 transition-all group z-20">
-                        <div className={`relative transition-all duration-500 ${isScrolled ? 'w-24 h-8' : 'w-32 md:w-40 h-10'}`}>
+                    <Link href="/" className="block relative flex-shrink-0 transition-all group z-20 pl-2">
+                        <div className={`relative transition-all duration-500 ${isScrolled ? 'w-28 h-9' : 'w-32 md:w-40 h-10'}`}>
                             <Image
                                 src="/images/logo-name.webp"
                                 alt="Fish It"
@@ -68,55 +68,35 @@ export default function Dashboard() {
                         </div>
                     </Link>
 
-                    {/* Center: Main Navigation (Visible Only When SCROLL TOP) */}
+                    {/* Center: Main Navigation (Persistent) */}
                     <div
                         className={`
-                            absolute left-1/2 -translate-x-1/2 flex items-center p-1 bg-[#1D264F] rounded-full border border-white/10 shadow-lg backdrop-blur-md transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] z-10
-                            ${isScrolled
-                                ? 'opacity-0 scale-90 pointer-events-none translate-y-4'
-                                : 'opacity-100 scale-100 translate-y-0'
-                            }
+                            absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center p-1.5 rounded-full bg-[linear-gradient(180deg,rgba(255,255,255,0.18),rgba(255,255,255,0.05))] backdrop-blur-xl border border-white/20 ring-1 ring-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.25)] transition-all duration-500 z-10
+                            ${isScrolled ? 'scale-100' : 'scale-100'}
                         `}
                     >
-                        <button className="px-8 py-2.5 rounded-full text-sm font-medium bg-[#5A3BCE] text-white shadow-lg shadow-indigo-500/40 transition-all">
+                        {/* Active Button with Glow & Depth */}
+                        <button className="px-8 py-2.5 rounded-full text-sm font-medium bg-[#5448E8] text-white shadow-[0_2px_20px_rgba(84,72,232,0.6),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all z-10">
                             Fishing
                         </button>
-                        <button className="px-8 py-2.5 rounded-full text-sm font-medium text-gray-300 hover:text-white transition-all hover:bg-white/5">
+
+                        {/* Inactive Button */}
+                        <button className="px-8 py-2.5 rounded-full text-sm font-medium text-white hover:text-white/80 transition-all hover:bg-white/5">
                             Marketplace
                         </button>
                     </div>
 
-                    {/* Right Group: Scrolled Nav Item + Wallet */}
-                    <div className="flex items-center gap-2 z-20">
-
-                        {/* "Fishing" Button (Visible Only When SCROLLED) */}
-                        <div
+                    {/* Right Group: Wallet Only */}
+                    <div className="flex items-center gap-4 z-20 pr-1">
+                        <Button
+                            variant="primary"
                             className={`
-                                overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]
-                                ${isScrolled
-                                    ? 'w-[70px] opacity-100 mr-2'
-                                    : 'w-0 opacity-0 mr-0'
-                                }
+                                bg-[#5448E8] hover:bg-[#4839d3] transition-all duration-500 shadow-lg shadow-indigo-500/20
+                                ${isScrolled ? '!h-11 !text-sm !px-6 !rounded-full' : '!h-12 !text-base !px-8'}
                             `}
                         >
-                            <button className="w-full text-sm font-medium text-white hover:text-cyan-300 transition-colors whitespace-nowrap">
-                                Fishing
-                            </button>
-                        </div>
-
-                        {/* Connect Wallet */}
-                        <div className="flex-shrink-0">
-                            <Button
-                                variant="primary"
-                                className={`
-                                    bg-[#5A3BCE] hover:bg-[#4c32b3] transition-all duration-500 shadow-lg shadow-indigo-500/20
-                                    ${isScrolled ? '!h-9 !text-xs !px-5 !rounded-full' : '!h-11 !text-sm !px-6'}
-                                `}
-                            >
-                                Connect Wallet
-                            </Button>
-                        </div>
-
+                            Connect Wallet
+                        </Button>
                     </div>
                 </nav>
 
