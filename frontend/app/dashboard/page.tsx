@@ -10,6 +10,8 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useDisconnect } from 'wagmi';
 
 export default function Dashboard() {
+    // const { isConnected } = useAccount();
+    const { disconnect } = useDisconnect();
     const [isScrolled, setIsScrolled] = useState(false);
 
     useEffect(() => {
@@ -94,11 +96,11 @@ export default function Dashboard() {
                             {({
                                 account,
                                 chain,
-                                openAccountModal,
                                 openChainModal,
                                 openConnectModal,
                                 authenticationStatus,
                                 mounted,
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             }: any) => {
                                 const ready = mounted && authenticationStatus !== 'loading';
                                 const connected =
@@ -151,20 +153,27 @@ export default function Dashboard() {
                                             }
 
                                             return (
-                                                <div style={{ display: 'flex', gap: 12 }}>
-                                                    <Button
-                                                        onClick={openAccountModal}
-                                                        variant="primary"
+                                                <div className="flex items-center gap-3">
+                                                    {/* Connected Status */}
+                                                    <div className={`
+                                                        flex items-center gap-2.5 rounded-full border border-[#3B9CAD]/30 bg-[#136C7D]/80 text-white font-medium shadow-lg shadow-teal-900/20
+                                                        ${isScrolled ? 'h-11 px-5 text-sm' : 'h-12 px-7 text-base'}
+                                                    `}>
+                                                        <div className="w-2.5 h-2.5 rounded-full bg-[#00A34D] ring-1 ring-white/90 shadow-[0_0_8px_rgba(0,163,77,0.5)]" />
+                                                        Connected
+                                                    </div>
+
+                                                    {/* Disconnect Button */}
+                                                    <button
+                                                        onClick={() => disconnect()}
                                                         className={`
-                                                            bg-[#5448E8] hover:bg-[#4839d3] transition-all duration-500 shadow-lg shadow-indigo-500/20
-                                                            ${isScrolled ? '!h-11 !text-sm !px-6 !rounded-full' : '!h-12 !text-base !px-8'}
+                                                            flex items-center justify-center rounded-full text-white font-medium transition-all
+                                                            bg-[#7B617E]/90 border border-white/15 hover:bg-[#7B617E] shadow-lg shadow-purple-900/10
+                                                            ${isScrolled ? 'h-11 px-7 text-sm' : 'h-12 px-9 text-base'}
                                                         `}
                                                     >
-                                                        {account.displayName}
-                                                        {account.displayBalance
-                                                            ? ` (${account.displayBalance})`
-                                                            : ''}
-                                                    </Button>
+                                                        Disconnect
+                                                    </button>
                                                 </div>
                                             );
                                         })()}
