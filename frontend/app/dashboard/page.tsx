@@ -189,9 +189,37 @@ export default function Dashboard() {
                     <h1 className="text-3xl md:text-4xl font-normal text-white mb-2 drop-shadow-lg">
                         Welcome to Fish It
                     </h1>
-                    <p className="text-white/50 text-base md:text-lg max-w-2xl">
+                    <p className="text-white/50 text-base md:text-lg max-w-2xl mb-6">
                         Stake MNT, catch unique AI-generated fish NFTs, and boost your real yield.
                     </p>
+
+                    {/* Stake MNT Banner */}
+                    <div className="relative overflow-hidden rounded-3xl px-8 py-5 bg-[#4157E2] border border-white/20 shadow-[0_8px_40px_rgba(65,87,226,0.6)]">
+                        <div className="relative z-10 flex items-center justify-between gap-6">
+                            <div className="flex-1">
+                                <h2 className="text-xl md:text-2xl font-bold text-white mb-1">
+                                    Stake MNT to Start Fishing!
+                                </h2>
+                                <p className="text-white/80 text-sm">
+                                    Earn energy every day and catch unique fish NFTs with real yield boosts.
+                                </p>
+                            </div>
+                            <button className="flex-shrink-0 px-8 py-3 bg-white text-[#4157E2] font-semibold text-sm rounded-full hover:bg-white/95 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_4px_12px_rgba(255,255,255,0.3)]">
+                                Stake Now
+                            </button>
+                        </div>
+
+                        {/* Decorative fish icons */}
+                        <div className="absolute right-28 top-1/2 -translate-y-1/2 opacity-25">
+                            <span className="text-3xl">🐠</span>
+                        </div>
+                        <div className="absolute right-16 top-1/2 -translate-y-1/2 opacity-20">
+                            <span className="text-2xl">🐟</span>
+                        </div>
+                        <div className="absolute right-6 top-1/2 -translate-y-1/2 opacity-15">
+                            <span className="text-xl">🐟</span>
+                        </div>
+                    </div>
                 </header>
 
                 {/* Dashboard Grid */}
