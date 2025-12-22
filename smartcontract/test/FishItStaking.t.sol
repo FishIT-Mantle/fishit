@@ -9,16 +9,13 @@ contract FishItStakingTest is Test {
     address public admin;
     address public user1;
     address public user2;
-    address public fishingGame;
 
     uint256 public constant STAKE_AMOUNT = 1 ether;
-    uint256 public constant REWARD_AMOUNT = 0.1 ether;
 
     function setUp() public {
         admin = address(0x1);
         user1 = address(0x2);
         user2 = address(0x3);
-        fishingGame = address(0x4);
 
         vm.prank(admin);
         staking = new FishItStaking(admin);
@@ -50,12 +47,6 @@ contract FishItStakingTest is Test {
         staking.setAdmin(address(0x5));
     }
 
-    function test_SetFishingGame_OnlyAdmin() public {
-        vm.prank(admin);
-        staking.setFishingGame(fishingGame);
-        assertEq(staking.fishingGame(), fishingGame);
-    }
-
     // =========================================================================
     // Staking Tests
     // =========================================================================
@@ -73,261 +64,225 @@ contract FishItStakingTest is Test {
         vm.deal(user1, STAKE_AMOUNT);
         vm.prank(user1);
         vm.expectEmit(true, false, false, false);
-        emit FishItStaking.Staked(user1, STAKE_AMOUNT);
+        emit FishItStaking.Staked(user1, STAKE_AMOUNT, 0); // License tier 0 (< 100 MNT)
         staking.stake{value: STAKE_AMOUNT}();
+    }
+
+    function test_Stake_UpdatesLicenseTier() public {
+        vm.deal(user1, 500 ether);
+
+        // Stake 100 MNT -> License I (tier 1)
+        vm.prank(user1);
+        staking.stake{value: 100 ether}();
+        assertEq(staking.getLicenseTier(user1), 1);
+
+        // Add 150 MNT more -> License II (tier 2)
+        vm.prank(user1);
+        staking.stake{value: 150 ether}();
+        assertEq(staking.getLicenseTier(user1), 2);
+
+        // Add 250 MNT more -> License III (tier 3)
+        vm.prank(user1);
+        staking.stake{value: 250 ether}();
+        assertEq(staking.getLicenseTier(user1), 3);
     }
 
     function test_Stake_RevertsIfZeroAmount() public {
-        vm.deal(user1, 0);
-        vm.prank(user1);
         vm.expectRevert("Zero amount");
+        vm.prank(user1);
         staking.stake{value: 0}();
     }
 
-    function test_Stake_MultipleUsers() public {
+    function test_Stake_UpdatesTotalStaked() public {
         vm.deal(user1, STAKE_AMOUNT);
-        vm.deal(user2, STAKE_AMOUNT * 2);
+        vm.deal(user2, STAKE_AMOUNT);
 
         vm.prank(user1);
         staking.stake{value: STAKE_AMOUNT}();
+        assertEq(staking.totalStaked(), STAKE_AMOUNT);
 
         vm.prank(user2);
-        staking.stake{value: STAKE_AMOUNT * 2}();
-
-        assertEq(staking.stakes(user1), STAKE_AMOUNT);
-        assertEq(staking.stakes(user2), STAKE_AMOUNT * 2);
-        assertEq(staking.totalStaked(), STAKE_AMOUNT * 3);
-    }
-
-    function test_Stake_UpdatesEnergyTimestamp() public {
-        vm.deal(user1, STAKE_AMOUNT);
-        vm.prank(user1);
         staking.stake{value: STAKE_AMOUNT}();
-
-        assertGt(staking.lastEnergyUpdate(user1), 0);
+        assertEq(staking.totalStaked(), STAKE_AMOUNT * 2);
     }
 
     // =========================================================================
-    // Unstaking Tests
+    // License Tier Tests
     // =========================================================================
 
-    function test_Unstake_WithdrawsPrincipal() public {
-        vm.deal(user1, STAKE_AMOUNT);
-        uint256 balanceBeforeStake = user1.balance;
-        vm.prank(user1);
-        staking.stake{value: STAKE_AMOUNT}();
-
-        uint256 balanceAfterStake = user1.balance;
-        assertEq(balanceAfterStake, balanceBeforeStake - STAKE_AMOUNT);
-
-        vm.prank(user1);
-        staking.unstake(STAKE_AMOUNT, false);
-
-        // Balance should be back to original (principal returned)
-        assertEq(user1.balance, balanceBeforeStake);
-        assertEq(staking.stakes(user1), 0);
-        assertEq(staking.totalStaked(), 0);
+    function test_GetLicenseTier_NoStake() public {
+        assertEq(staking.getLicenseTier(user1), 0);
     }
 
-    function test_Unstake_EmitsEvent() public {
-        vm.deal(user1, STAKE_AMOUNT);
+    function test_GetLicenseTier_LessThan100() public {
+        vm.deal(user1, 50 ether);
         vm.prank(user1);
-        staking.stake{value: STAKE_AMOUNT}();
-
-        vm.prank(user1);
-        vm.expectEmit(true, false, false, false);
-        emit FishItStaking.Unstaked(user1, STAKE_AMOUNT);
-        staking.unstake(STAKE_AMOUNT, false);
+        staking.stake{value: 50 ether}();
+        assertEq(staking.getLicenseTier(user1), 0); // No license
     }
 
-    function test_Unstake_RevertsIfInsufficientStake() public {
-        vm.deal(user1, STAKE_AMOUNT);
-        vm.prank(user1);
-        staking.stake{value: STAKE_AMOUNT}();
-
-        vm.prank(user1);
-        vm.expectRevert("Insufficient stake");
-        staking.unstake(STAKE_AMOUNT + 1, false);
-    }
-
-    function test_Unstake_Partial() public {
-        vm.deal(user1, STAKE_AMOUNT * 2);
-        vm.prank(user1);
-        staking.stake{value: STAKE_AMOUNT * 2}();
-
-        vm.prank(user1);
-        staking.unstake(STAKE_AMOUNT, false);
-
-        assertEq(staking.stakes(user1), STAKE_AMOUNT);
-        assertEq(staking.totalStaked(), STAKE_AMOUNT);
-    }
-
-    function test_Unstake_WithClaimRewards() public {
-        vm.deal(user1, STAKE_AMOUNT);
-        uint256 balanceBeforeStake = user1.balance;
-        vm.prank(user1);
-        staking.stake{value: STAKE_AMOUNT}();
-
-        // Fund reward pool and allocate reward
-        vm.deal(admin, REWARD_AMOUNT);
-        vm.prank(admin);
-        staking.fundRewardPool{value: REWARD_AMOUNT}();
-
-        vm.prank(admin);
-        staking.setFishingGame(fishingGame);
-        vm.prank(fishingGame);
-        staking.allocateReward(user1, REWARD_AMOUNT);
-
-        vm.prank(user1);
-        staking.unstake(STAKE_AMOUNT, true);
-
-        // Balance should be original balance + reward (principal was already returned)
-        assertEq(user1.balance, balanceBeforeStake + REWARD_AMOUNT);
-        assertEq(staking.pendingRewards(user1), 0);
-    }
-
-    function test_Unstake_ResetsEnergyOnFullUnstake() public {
-        vm.deal(user1, STAKE_AMOUNT);
-        vm.prank(user1);
-        staking.stake{value: STAKE_AMOUNT}();
-
-        vm.prank(user1);
-        staking.unstake(STAKE_AMOUNT, false);
-
-        assertEq(staking.lastEnergyUpdate(user1), 0);
-    }
-
-    // =========================================================================
-    // Reward Pool Tests
-    // =========================================================================
-
-    function test_FundRewardPool_UpdatesBalance() public {
-        vm.deal(admin, REWARD_AMOUNT);
-        vm.prank(admin);
-        staking.fundRewardPool{value: REWARD_AMOUNT}();
-
-        assertEq(staking.rewardPoolBalance(), REWARD_AMOUNT);
-    }
-
-    function test_FundRewardPool_EmitsEvent() public {
-        vm.deal(admin, REWARD_AMOUNT);
-        vm.prank(admin);
-        vm.expectEmit(true, false, false, false);
-        emit FishItStaking.RewardPoolFunded(admin, REWARD_AMOUNT);
-        staking.fundRewardPool{value: REWARD_AMOUNT}();
-    }
-
-    function test_AllocateReward_OnlyGame() public {
-        vm.deal(admin, REWARD_AMOUNT);
-        vm.prank(admin);
-        staking.fundRewardPool{value: REWARD_AMOUNT}();
-
-        vm.prank(admin);
-        staking.setFishingGame(fishingGame);
-
-        vm.prank(fishingGame);
-        staking.allocateReward(user1, REWARD_AMOUNT);
-
-        assertEq(staking.pendingRewards(user1), REWARD_AMOUNT);
-        assertEq(staking.rewardPoolBalance(), 0);
-    }
-
-    function test_AllocateReward_RevertsIfNotGame() public {
-        vm.deal(admin, REWARD_AMOUNT);
-        vm.prank(admin);
-        staking.fundRewardPool{value: REWARD_AMOUNT}();
-
-        vm.expectRevert("Not game");
-        vm.prank(user1);
-        staking.allocateReward(user1, REWARD_AMOUNT);
-    }
-
-    function test_AllocateReward_RevertsIfInsufficientPool() public {
-        vm.deal(admin, REWARD_AMOUNT);
-        vm.prank(admin);
-        staking.fundRewardPool{value: REWARD_AMOUNT}();
-
-        vm.prank(admin);
-        staking.setFishingGame(fishingGame);
-
-        vm.expectRevert("Insufficient pool");
-        vm.prank(fishingGame);
-        staking.allocateReward(user1, REWARD_AMOUNT + 1);
-    }
-
-    function test_ClaimRewards_TransfersRewards() public {
-        vm.deal(admin, REWARD_AMOUNT);
-        vm.prank(admin);
-        staking.fundRewardPool{value: REWARD_AMOUNT}();
-
-        vm.prank(admin);
-        staking.setFishingGame(fishingGame);
-        vm.prank(fishingGame);
-        staking.allocateReward(user1, REWARD_AMOUNT);
-
-        uint256 balanceBefore = user1.balance;
-        vm.prank(user1);
-        staking.claimRewards();
-
-        assertEq(user1.balance, balanceBefore + REWARD_AMOUNT);
-        assertEq(staking.pendingRewards(user1), 0);
-    }
-
-    function test_ClaimRewards_EmitsEvent() public {
-        vm.deal(admin, REWARD_AMOUNT);
-        vm.prank(admin);
-        staking.fundRewardPool{value: REWARD_AMOUNT}();
-
-        vm.prank(admin);
-        staking.setFishingGame(fishingGame);
-        vm.prank(fishingGame);
-        staking.allocateReward(user1, REWARD_AMOUNT);
-
-        vm.prank(user1);
-        vm.expectEmit(true, false, false, false);
-        emit FishItStaking.RewardClaimed(user1, REWARD_AMOUNT);
-        staking.claimRewards();
-    }
-
-    // =========================================================================
-    // Energy Calculation Tests
-    // =========================================================================
-
-    function test_ComputeEnergyPerDay_ReturnsZeroIfNoStake() public {
-        assertEq(staking.computeEnergyPerDay(user1), 0);
-    }
-
-    function test_ComputeEnergyPerDay_1MNT() public {
-        vm.deal(user1, 1 ether);
-        vm.prank(user1);
-        staking.stake{value: 1 ether}();
-
-        // sqrt(1 ether) ≈ 1e9 (in wei, but we want per MNT)
-        // Actually: sqrt(1e18) ≈ 1e9, but we want 1 energy per day for 1 MNT
-        // The formula is sqrt(staked), so sqrt(1e18) = 1e9 wei = 1e-9 MNT
-        // But PRD says 1 MNT = 1 energy, so we need to check the actual implementation
-        uint256 energy = staking.computeEnergyPerDay(user1);
-        assertGt(energy, 0);
-    }
-
-    function test_ComputeEnergyPerDay_4MNT() public {
-        vm.deal(user1, 4 ether);
-        vm.prank(user1);
-        staking.stake{value: 4 ether}();
-
-        uint256 energy = staking.computeEnergyPerDay(user1);
-        // sqrt(4) = 2, so should be approximately 2 * sqrt(1 ether)
-        assertGt(energy, 0);
-    }
-
-    function test_ComputeEnergyPerDay_100MNT() public {
+    function test_GetLicenseTier_LicenseI() public {
         vm.deal(user1, 100 ether);
         vm.prank(user1);
         staking.stake{value: 100 ether}();
+        assertEq(staking.getLicenseTier(user1), 1); // License I (Zone 2)
+    }
 
-        uint256 energy = staking.computeEnergyPerDay(user1);
-        // sqrt(100) = 10, so should be approximately 10 * sqrt(1 ether)
-        assertGt(energy, 0);
+    function test_GetLicenseTier_LicenseII() public {
+        vm.deal(user1, 250 ether);
+        vm.prank(user1);
+        staking.stake{value: 250 ether}();
+        assertEq(staking.getLicenseTier(user1), 2); // License II (Zone 3)
+    }
+
+    function test_GetLicenseTier_LicenseIII() public {
+        vm.deal(user1, 500 ether);
+        vm.prank(user1);
+        staking.stake{value: 500 ether}();
+        assertEq(staking.getLicenseTier(user1), 3); // License III (Zone 4)
+    }
+
+    // =========================================================================
+    // Unstake Tests (with cooldown)
+    // =========================================================================
+
+    function test_RequestUnstake_Works() public {
+        vm.deal(user1, STAKE_AMOUNT);
+        vm.prank(user1);
+        staking.stake{value: STAKE_AMOUNT}();
+
+        vm.prank(user1);
+        staking.requestUnstake(STAKE_AMOUNT);
+
+        (uint256 amount, uint256 availableAt) = staking.getUnstakeRequest(user1);
+        assertEq(amount, STAKE_AMOUNT);
+        assertEq(availableAt, block.timestamp + 3 days);
+    }
+
+    function test_RequestUnstake_EmitsEvent() public {
+        vm.deal(user1, STAKE_AMOUNT);
+        vm.prank(user1);
+        staking.stake{value: STAKE_AMOUNT}();
+
+        vm.prank(user1);
+        vm.expectEmit(true, false, false, false);
+        emit FishItStaking.UnstakeRequested(user1, STAKE_AMOUNT, block.timestamp + 3 days);
+        staking.requestUnstake(STAKE_AMOUNT);
+    }
+
+    function test_RequestUnstake_RevertsIfNoStake() public {
+        vm.expectRevert("Insufficient stake");
+        vm.prank(user1);
+        staking.requestUnstake(STAKE_AMOUNT);
+    }
+
+    function test_RequestUnstake_RevertsIfAlreadyRequested() public {
+        vm.deal(user1, STAKE_AMOUNT);
+        vm.prank(user1);
+        staking.stake{value: STAKE_AMOUNT}();
+
+        vm.prank(user1);
+        staking.requestUnstake(STAKE_AMOUNT);
+
+        vm.expectRevert("Unstake already requested");
+        vm.prank(user1);
+        staking.requestUnstake(STAKE_AMOUNT);
+    }
+
+    function test_ExecuteUnstake_RevertsIfCooldownActive() public {
+        vm.deal(user1, STAKE_AMOUNT);
+        vm.prank(user1);
+        staking.stake{value: STAKE_AMOUNT}();
+
+        vm.prank(user1);
+        staking.requestUnstake(STAKE_AMOUNT);
+
+        vm.expectRevert("Cooldown active");
+        vm.prank(user1);
+        staking.executeUnstake();
+    }
+
+    function test_ExecuteUnstake_WorksAfterCooldown() public {
+        vm.deal(user1, STAKE_AMOUNT);
+        uint256 balanceBefore = user1.balance;
+        
+        vm.prank(user1);
+        staking.stake{value: STAKE_AMOUNT}();
+
+        vm.prank(user1);
+        staking.requestUnstake(STAKE_AMOUNT);
+
+        // Fast forward 3 days
+        vm.warp(block.timestamp + 3 days);
+
+        vm.prank(user1);
+        staking.executeUnstake();
+
+        assertEq(user1.balance, balanceBefore); // Principal returned
+        assertEq(staking.stakes(user1), 0);
+        assertEq(staking.totalStaked(), 0);
+        
+        // Request should be cleared
+        (uint256 amount, uint256 availableAt) = staking.getUnstakeRequest(user1);
+        assertEq(amount, 0);
+        assertEq(availableAt, 0);
+    }
+
+    function test_ExecuteUnstake_EmitsEvent() public {
+        vm.deal(user1, STAKE_AMOUNT);
+        vm.prank(user1);
+        staking.stake{value: STAKE_AMOUNT}();
+
+        vm.prank(user1);
+        staking.requestUnstake(STAKE_AMOUNT);
+
+        vm.warp(block.timestamp + 3 days);
+
+        vm.prank(user1);
+        vm.expectEmit(true, false, false, false);
+        emit FishItStaking.UnstakeExecuted(user1, STAKE_AMOUNT);
+        staking.executeUnstake();
+    }
+
+    function test_CancelUnstakeRequest_Works() public {
+        vm.deal(user1, STAKE_AMOUNT);
+        vm.prank(user1);
+        staking.stake{value: STAKE_AMOUNT}();
+
+        vm.prank(user1);
+        staking.requestUnstake(STAKE_AMOUNT);
+
+        vm.prank(user1);
+        staking.cancelUnstakeRequest();
+
+        (uint256 amount, uint256 availableAt) = staking.getUnstakeRequest(user1);
+        assertEq(amount, 0);
+        assertEq(availableAt, 0);
+    }
+
+    function test_CancelUnstakeRequest_RevertsIfNoRequest() public {
+        vm.expectRevert("No unstake request");
+        vm.prank(user1);
+        staking.cancelUnstakeRequest();
+    }
+
+    function test_ExecuteUnstake_PartialUnstake() public {
+        vm.deal(user1, 200 ether);
+        vm.prank(user1);
+        staking.stake{value: 200 ether}();
+
+        uint256 unstakeAmount = 100 ether;
+        vm.prank(user1);
+        staking.requestUnstake(unstakeAmount);
+
+        vm.warp(block.timestamp + 3 days);
+
+        uint256 balanceBefore = user1.balance;
+        vm.prank(user1);
+        staking.executeUnstake();
+
+        assertEq(user1.balance, balanceBefore + unstakeAmount);
+        assertEq(staking.stakes(user1), 200 ether - unstakeAmount);
+        assertEq(staking.totalStaked(), 200 ether - unstakeAmount);
     }
 }
-

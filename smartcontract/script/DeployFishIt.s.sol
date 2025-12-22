@@ -7,6 +7,9 @@ import {FishItStaking} from "../src/FishItStaking.sol";
 import {FishNFT} from "../src/FishNFT.sol";
 import {FishingGame} from "../src/FishingGame.sol";
 import {FishMarketplace} from "../src/FishMarketplace.sol";
+import {ZoneValidator} from "../src/ZoneValidator.sol";
+import {FishBait} from "../src/FishBait.sol";
+import {FishUpgrade} from "../src/FishUpgrade.sol";
 
 /**
  * @title DeployFishIt
@@ -16,10 +19,9 @@ import {FishMarketplace} from "../src/FishMarketplace.sol";
  * 1. FishItStaking (needs admin)
  * 2. FishNFT (needs owner)
  * 3. FishingGame (needs staking + NFT + revenue recipient)
- * 4. FishMarketplace (needs staking + revenue recipient)
+ * 4. FishMarketplace (needs revenue recipient)
  *
  * Post-deployment wiring:
- * - Staking.setFishingGame(FishingGame)
  * - FishNFT.setFishingGame(FishingGame)
  * - FishingGame.setBaitPrices(...)
  * - FishingGame.setVRFConfig(...) [placeholder for testnet]
@@ -28,7 +30,10 @@ contract DeployFishIt is Script {
     // Deployment addresses
     FishItStaking public staking;
     FishNFT public fishNFT;
+    ZoneValidator public zoneValidator;
+    FishBait public fishBait;
     FishingGame public fishingGame;
+    FishUpgrade public fishUpgrade;
     FishMarketplace public marketplace;
 
     // Configuration (adjust for testnet/mainnet)
@@ -73,52 +78,68 @@ contract DeployFishIt is Script {
         fishNFT = new FishNFT(admin);
         console2.log("   FishNFT deployed at:", address(fishNFT));
 
-        // Step 3: Deploy FishingGame
-        console2.log("\n3. Deploying FishingGame...");
+        // Step 3: Deploy ZoneValidator
+        console2.log("\n3. Deploying ZoneValidator...");
+        zoneValidator = new ZoneValidator(admin, staking, fishNFT);
+        console2.log("   ZoneValidator deployed at:", address(zoneValidator));
+
+        // Step 4: Deploy FishBait
+        console2.log("\n4. Deploying FishBait...");
+        fishBait = new FishBait(admin);
+        console2.log("   FishBait deployed at:", address(fishBait));
+
+        // Step 5: Deploy FishingGame
+        console2.log("\n5. Deploying FishingGame...");
         fishingGame = new FishingGame(
             admin,
             staking,
             fishNFT,
+            zoneValidator,
+            fishBait,
             revenueRecipient
         );
         console2.log("   FishingGame deployed at:", address(fishingGame));
 
-        // Step 4: Deploy FishMarketplace
-        console2.log("\n4. Deploying FishMarketplace...");
+        // Wire FishBait to FishingGame
+        vm.prank(admin);
+        fishBait.setFishingGame(address(fishingGame));
+
+        // Step 6: Deploy FishUpgrade
+        console2.log("\n6. Deploying FishUpgrade...");
+        fishUpgrade = new FishUpgrade(admin, fishNFT);
+        console2.log("   FishUpgrade deployed at:", address(fishUpgrade));
+
+        // Wire FishNFT to allow FishUpgrade to mint
+        vm.prank(admin);
+        fishNFT.setUpgradeContract(address(fishUpgrade));
+
+        // Step 7: Deploy FishMarketplace
+        console2.log("\n6. Deploying FishMarketplace...");
         marketplace = new FishMarketplace(
             admin,
-            staking,
             revenueRecipient
         );
         console2.log("   FishMarketplace deployed at:", address(marketplace));
 
-        // Step 5: Wire contracts together
-        console2.log("\n5. Wiring contracts...");
-
-        // Staking needs to know about FishingGame
-        console2.log("   Setting FishingGame in Staking...");
-        staking.setFishingGame(address(fishingGame));
+        // Step 8: Wire contracts together
+        console2.log("\n8. Wiring contracts...");
 
         // FishNFT needs to know about FishingGame
         console2.log("   Setting FishingGame in FishNFT...");
+        vm.prank(admin);
         fishNFT.setFishingGame(address(fishingGame));
 
-        // Step 6: Configure FishingGame
-        console2.log("\n6. Configuring FishingGame...");
+        // Step 9: Configure contracts
+        console2.log("\n9. Configuring contracts...");
 
-        // Set bait prices
-        console2.log("   Setting bait prices...");
-        console2.log("     Common:", COMMON_BAIT_PRICE);
-        console2.log("     Rare:", RARE_BAIT_PRICE);
-        console2.log("     Epic:", EPIC_BAIT_PRICE);
-        fishingGame.setBaitPrices(
-            COMMON_BAIT_PRICE,
-            RARE_BAIT_PRICE,
-            EPIC_BAIT_PRICE
-        );
+        // Note: Bait prices are now set in FishBait contract (1, 2, 4 MNT)
+        console2.log("   Bait prices are set in FishBait contract:");
+        console2.log("     Common: 1 MNT");
+        console2.log("     Rare: 2 MNT");
+        console2.log("     Epic: 4 MNT");
 
-        // Set Supra VRF config (update with real Supra Router address)
-        console2.log("   Setting Supra VRF config...");
+        // Set Supra VRF config for FishingGame
+        console2.log("   Setting Supra VRF config for FishingGame...");
         console2.log("     Router:", SUPRA_ROUTER);
         console2.log("     Confirmations:", SUPRA_NUM_CONFIRMATIONS);
         if (SUPRA_ROUTER != address(0)) {
@@ -128,19 +149,34 @@ contract DeployFishIt is Script {
             console2.log("     Update SUPRA_ROUTER with actual Supra Router address for Mantle");
         }
 
-        // Step 7: Summary
+        // Set Supra VRF config for FishUpgrade (for Rare → Epic 40% success rate)
+        console2.log("   Setting Supra VRF config for FishUpgrade...");
+        if (SUPRA_ROUTER != address(0)) {
+            fishUpgrade.setSupraVRFConfig(SUPRA_ROUTER, SUPRA_NUM_CONFIRMATIONS);
+        } else {
+            console2.log("     WARNING: Supra VRF config skipped (zero address)");
+        }
+
+        // Step 10: Summary
         console2.log("\n=== Deployment Summary ===");
         console2.log("FishItStaking:", address(staking));
         console2.log("FishNFT:", address(fishNFT));
+        console2.log("ZoneValidator:", address(zoneValidator));
+        console2.log("FishBait:", address(fishBait));
         console2.log("FishingGame:", address(fishingGame));
+        console2.log("FishUpgrade:", address(fishUpgrade));
         console2.log("FishMarketplace:", address(marketplace));
         console2.log("\n=== Next Steps ===");
-        console2.log("1. Fund reward pool: staking.fundRewardPool{value: amount}()");
-        console2.log("2. Update Supra VRF config with real Supra Router address for Mantle");
-        console2.log("3. Register wallet with Supra for VRF usage (if required)");
-        console2.log("4. Test staking: staking.stake{value: amount}()");
-        console2.log("5. Test fishing: fishingGame.castLine{value: baitPrice}(baitType)");
-        console2.log("6. Backend should listen to FishCaught events for AI generation");
+        console2.log("1. Update Supra VRF config with real Supra Router address for Mantle");
+        console2.log("2. Register wallet with Supra for VRF usage (if required)");
+        console2.log("3. Test staking: staking.stake{value: amount}()");
+        console2.log("4. Purchase bait: fishBait.purchaseBait(baitType, amount){value: cost}()");
+        console2.log("5. Approve contracts to burn NFTs:");
+        console2.log("   - fishNFT.setApprovalForAll(fishingGame, true) // For zone access");
+        console2.log("   - fishNFT.setApprovalForAll(fishUpgrade, true) // For upgrades");
+        console2.log("6. Test fishing: fishingGame.castLine(zone, baitType){value: entryFee}()");
+        console2.log("7. Test upgrade: fishUpgrade.upgradeCommonToRare(tokenIds) or upgradeRareToEpic(tokenIds)");
+        console2.log("8. Backend should listen to FishCaught and Upgrade events for tracking");
 
         vm.stopBroadcast();
     }
@@ -154,7 +190,7 @@ contract DeployFishIt is Script {
         require(address(fishingGame) != address(0), "Game not deployed");
         require(address(marketplace) != address(0), "Marketplace not deployed");
 
-        require(staking.fishingGame() == address(fishingGame), "Staking game mismatch");
+        // staking.fishingGame() removed - not needed in new system
         require(fishNFT.fishingGame() == address(fishingGame), "NFT game mismatch");
         require(fishingGame.staking() == staking, "Game staking mismatch");
         require(fishingGame.fishNFT() == fishNFT, "Game NFT mismatch");

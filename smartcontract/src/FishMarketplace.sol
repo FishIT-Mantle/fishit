@@ -5,7 +5,6 @@ import {IERC721} from "@openzeppelin/token/ERC721/IERC721.sol";
 import {
     IERC721Receiver
 } from "@openzeppelin/token/ERC721/IERC721Receiver.sol";
-import {IFishItStaking} from "./FishItStaking.sol";
 
 contract FishMarketplace is IERC721Receiver {
     // -------------------------------------------------------------------------
@@ -46,15 +45,11 @@ contract FishMarketplace is IERC721Receiver {
     // -------------------------------------------------------------------------
 
     address public admin;
-    IFishItStaking public staking;
     address public revenueRecipient;
 
-    // marketplace fee: 2.5% = 250 bps
+    // marketplace fee: 2.5% = 250 bps (all goes to revenue in controlled economy)
     uint16 public constant FEE_BPS = 250;
     uint16 public constant BPS_DENOMINATOR = 10000;
-
-    // 50% of fee -> reward pool, 50% -> revenue
-    uint16 public constant FEE_TO_REWARD_BPS = 5000;
 
     // nft => tokenId => Listing
     mapping(address => mapping(uint256 => Listing)) public listings;
@@ -74,14 +69,11 @@ contract FishMarketplace is IERC721Receiver {
 
     constructor(
         address _admin,
-        IFishItStaking _staking,
         address _revenueRecipient
     ) {
         require(_admin != address(0), "Admin zero");
-        require(address(_staking) != address(0), "Staking zero");
         require(_revenueRecipient != address(0), "Revenue zero");
         admin = _admin;
-        staking = _staking;
         revenueRecipient = _revenueRecipient;
     }
 
@@ -137,15 +129,8 @@ contract FishMarketplace is IERC721Receiver {
         uint256 fee = (l.price * FEE_BPS) / BPS_DENOMINATOR;
         uint256 toSeller = l.price - fee;
 
-        // Split fee
-        uint256 toReward = (fee * FEE_TO_REWARD_BPS) / BPS_DENOMINATOR;
-        uint256 toRevenue = fee - toReward;
-
-        // fund reward pool
-        staking.fundRewardPool{value: toReward}();
-
-        // send revenue
-        (bool sentRev, ) = revenueRecipient.call{value: toRevenue}("");
+        // All fee goes to revenue (no reward pool in controlled economy)
+        (bool sentRev, ) = revenueRecipient.call{value: fee}("");
         require(sentRev, "Revenue transfer failed");
 
         // send to seller

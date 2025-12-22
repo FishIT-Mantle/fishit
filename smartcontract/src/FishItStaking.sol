@@ -3,39 +3,30 @@ pragma solidity ^0.8.20;
 
 /**
  * @title FishItStaking
- * @notice Core staking pool for FishIt on Mantle Network.
+ * @notice License-based staking system for FishIt game.
  *
- * - Accepts native MNT deposits (testnet for now).
- * - No lock period, no fee on stake/unstake.
- * - Tracks per-user stake and computes "energy" budget off-chain as sqrt(stake),
- *   but also stores last energy update timestamps for game contracts.
- * - Exposes hooks for FishingGame and Marketplace via rewardPool balance.
- *
- * Economic parameters (hardcoded for v1, from PRD):
- * - Reward pool funded externally (bait fees, marketplace fees, premium).
- * - Effective APY and yield-boost calculations are handled off-chain / in a
- *   separate yield contract in later phases; here we only provide accounting
- *   stubs and a simple reward balance per user for MVP.
+ * - Staking MNT grants license tiers for zone access:
+ *   - < 100 MNT: No license (Zone 1 only)
+ *   - ≥ 100 MNT: License I (Zone 2)
+ *   - ≥ 250 MNT: License II (Zone 3)
+ *   - ≥ 500 MNT: License III (Zone 4)
+ * - Unstake requires 3-day cooldown.
+ * - No yield/rewards (controlled economy).
+ * - License tiers do NOT affect drop rates.
  *
  * Access control:
  * - Simple multi-sig style: admin is a single address that should be a multisig.
  */
-interface IFishItStaking {
-    function fundRewardPool() external payable;
-}
-
-contract FishItStaking is IFishItStaking {
+contract FishItStaking {
     // -------------------------------------------------------------------------
     // Events
     // -------------------------------------------------------------------------
 
-    event Staked(address indexed user, uint256 amount);
-    event Unstaked(address indexed user, uint256 amount);
-    event RewardPoolFunded(address indexed from, uint256 amount);
-    event RewardClaimed(address indexed user, uint256 amount);
+    event Staked(address indexed user, uint256 amount, uint8 licenseTier);
+    event UnstakeRequested(address indexed user, uint256 amount, uint256 availableAt);
+    event UnstakeExecuted(address indexed user, uint256 amount);
 
     event AdminUpdated(address indexed oldAdmin, address indexed newAdmin);
-    event GameContractUpdated(address indexed oldGame, address indexed newGame);
 
     // -------------------------------------------------------------------------
     // Storage
@@ -49,17 +40,14 @@ contract FishItStaking is IFishItStaking {
     // Per-user principal stake (in wei)
     mapping(address => uint256) public stakes;
 
-    // Simple reward balance per user (MNT from reward pool)
-    mapping(address => uint256) public pendingRewards;
+    // Unstake cooldown: 3 days
+    uint256 public constant UNSTAKE_COOLDOWN = 3 days;
 
-    // Reward pool balance (held in this contract as native MNT)
-    uint256 public rewardPoolBalance;
+    // Unstake requests: user => amount requested
+    mapping(address => uint256) public unstakeRequestAmount;
 
-    // The main game contract that can award rewards
-    address public fishingGame;
-
-    // Energy accounting: last time user energy was refreshed
-    mapping(address => uint256) public lastEnergyUpdate;
+    // Unstake requests: user => timestamp when unstake can be executed
+    mapping(address => uint256) public unstakeAvailableAt;
 
     // -------------------------------------------------------------------------
     // Modifiers
@@ -70,10 +58,6 @@ contract FishItStaking is IFishItStaking {
         _;
     }
 
-    modifier onlyGame() {
-        require(msg.sender == fishingGame, "Not game");
-        _;
-    }
 
     // -------------------------------------------------------------------------
     // Constructor
@@ -94,137 +78,109 @@ contract FishItStaking is IFishItStaking {
         admin = _newAdmin;
     }
 
-    function setFishingGame(address _game) external onlyAdmin {
-        emit GameContractUpdated(fishingGame, _game);
-        fishingGame = _game;
-    }
-
-    /**
-     * @notice Fund the reward pool with native MNT.
-     * This should be called by protocol fee collector / multisig.
-     */
-    function fundRewardPool() external payable {
-        require(msg.value > 0, "No value");
-        rewardPoolBalance += msg.value;
-        emit RewardPoolFunded(msg.sender, msg.value);
-    }
 
     // -------------------------------------------------------------------------
     // Staking logic (native MNT)
     // -------------------------------------------------------------------------
 
     /**
-     * @notice Stake native MNT into the pool.
-     * - Minimum 1 MNT is recommended by product spec, but that can be enforced off-chain for UX.
+     * @notice Stake native MNT to get license tier.
+     * - License tiers: <100 (none), ≥100 (I), ≥250 (II), ≥500 (III)
+     * - No minimum, but license requirements enforced by ZoneValidator
      */
     function stake() external payable {
         require(msg.value > 0, "Zero amount");
 
+        uint256 oldStake = stakes[msg.sender];
         stakes[msg.sender] += msg.value;
         totalStaked += msg.value;
 
-        // update energy timestamp (used by FishingGame to compute daily energy)
-        if (lastEnergyUpdate[msg.sender] == 0) {
-            lastEnergyUpdate[msg.sender] = block.timestamp;
-        }
+        uint8 oldTier = _getLicenseTier(oldStake);
+        uint8 newTier = _getLicenseTier(stakes[msg.sender]);
 
-        emit Staked(msg.sender, msg.value);
+        emit Staked(msg.sender, msg.value, newTier);
     }
 
     /**
-     * @notice Unstake principal + (optionally) claim pending rewards.
-     * @param amount Amount of principal to unstake.
-     * @param shouldClaimRewards Whether to automatically claim pending rewards.
-     *
-     * Energy reset is expected in game contract via hooks when full unstake occurs.
+     * @notice Request unstake. Unstake can be executed after 3-day cooldown.
+     * @param amount Amount to unstake
      */
-    function unstake(uint256 amount, bool shouldClaimRewards) external {
+    function requestUnstake(uint256 amount) external {
         uint256 staked = stakes[msg.sender];
         require(amount > 0, "Zero amount");
         require(staked >= amount, "Insufficient stake");
+        require(unstakeRequestAmount[msg.sender] == 0, "Unstake already requested");
 
+        unstakeRequestAmount[msg.sender] = amount;
+        unstakeAvailableAt[msg.sender] = block.timestamp + UNSTAKE_COOLDOWN;
+
+        emit UnstakeRequested(msg.sender, amount, unstakeAvailableAt[msg.sender]);
+    }
+
+    /**
+     * @notice Execute unstake after cooldown period
+     */
+    function executeUnstake() external {
+        uint256 amount = unstakeRequestAmount[msg.sender];
+        require(amount > 0, "No unstake request");
+        require(block.timestamp >= unstakeAvailableAt[msg.sender], "Cooldown active");
+
+        uint256 staked = stakes[msg.sender];
+        require(staked >= amount, "Insufficient stake");
+
+        // Clear request
+        delete unstakeRequestAmount[msg.sender];
+        delete unstakeAvailableAt[msg.sender];
+
+        // Update stakes
         stakes[msg.sender] = staked - amount;
         totalStaked -= amount;
 
-        // transfer principal back
+        // Transfer principal
         (bool sent, ) = msg.sender.call{value: amount}("");
         require(sent, "Transfer failed");
 
-        emit Unstaked(msg.sender, amount);
-
-        if (shouldClaimRewards) {
-            _claimRewardsInternal(msg.sender);
-        }
-
-        // If user fully unstakes, reset energy timestamp
-        if (stakes[msg.sender] == 0) {
-            lastEnergyUpdate[msg.sender] = 0;
-        }
-    }
-
-    // -------------------------------------------------------------------------
-    // Rewards API
-    // -------------------------------------------------------------------------
-
-    /**
-     * @notice Called by FishingGame to allocate rewards to a user from the reward pool.
-     * @dev Does not move funds yet, just updates accounting; payout happens on claim.
-     */
-    function allocateReward(address user, uint256 amount) external onlyGame {
-        require(amount > 0, "Zero amount");
-        require(rewardPoolBalance >= amount, "Insufficient pool");
-
-        rewardPoolBalance -= amount;
-        pendingRewards[user] += amount;
+        emit UnstakeExecuted(msg.sender, amount);
     }
 
     /**
-     * @notice Claim all pending rewards for caller.
+     * @notice Cancel unstake request
      */
-    function claimRewards() external {
-        _claimRewardsInternal(msg.sender);
-    }
-
-    function _claimRewardsInternal(address user) internal {
-        uint256 reward = pendingRewards[user];
-        if (reward == 0) return;
-
-        pendingRewards[user] = 0;
-
-        (bool sent, ) = user.call{value: reward}("");
-        require(sent, "Reward transfer failed");
-
-        emit RewardClaimed(user, reward);
+    function cancelUnstakeRequest() external {
+        require(unstakeRequestAmount[msg.sender] > 0, "No unstake request");
+        delete unstakeRequestAmount[msg.sender];
+        delete unstakeAvailableAt[msg.sender];
     }
 
     // -------------------------------------------------------------------------
-    // View helpers
+    // License API
     // -------------------------------------------------------------------------
 
     /**
-     * @notice Helper to compute the "energy per day" off-chain formula from PRD:
-     *         energy = sqrt(staked MNT)
-     * @dev This is pure and does not consider regeneration timing; game contract
-     *      will use staked amount + timestamps to enforce daily caps.
+     * @notice Get license tier for a user based on stake amount
+     * @return tier 0 = none, 1 = License I, 2 = License II, 3 = License III
      */
-    function computeEnergyPerDay(address user) external view returns (uint256) {
-        uint256 staked = stakes[user];
-        if (staked == 0) return 0;
-        return _sqrt(staked);
+    function getLicenseTier(address user) external view returns (uint8) {
+        return _getLicenseTier(stakes[user]);
     }
 
     /**
-     * @dev Integer square root (Babylonian method), adapted for uint256.
+     * @notice Internal function to calculate license tier from stake amount
      */
-    function _sqrt(uint256 x) internal pure returns (uint256 y) {
-        if (x == 0) return 0;
-        uint256 z = (x + 1) / 2;
-        y = x;
-        while (z < y) {
-            y = z;
-            z = (x / z + z) / 2;
-        }
+    function _getLicenseTier(uint256 stakeAmount) internal pure returns (uint8) {
+        if (stakeAmount >= 500 ether) return 3; // License III (Zone 4)
+        if (stakeAmount >= 250 ether) return 2; // License II (Zone 3)
+        if (stakeAmount >= 100 ether) return 1; // License I (Zone 2)
+        return 0; // No license (Zone 1 only)
     }
+
+    /**
+     * @notice Get unstake request info for user
+     */
+    function getUnstakeRequest(address user) external view returns (uint256 amount, uint256 availableAt) {
+        return (unstakeRequestAmount[user], unstakeAvailableAt[user]);
+    }
+
 }
 
 

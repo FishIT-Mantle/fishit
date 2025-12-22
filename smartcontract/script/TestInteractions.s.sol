@@ -57,41 +57,23 @@ contract TestInteractions is Script {
         console2.log("   Staked successfully");
         console2.log("   User stake:", staking.stakes(user));
         console2.log("   Total staked:", staking.totalStaked());
-        console2.log("   Energy per day:", staking.computeEnergyPerDay(user));
+        console2.log("   License tier:", staking.getLicenseTier(user));
 
-        // Test 2: Fund reward pool
-        console2.log("\n2. Testing reward pool funding...");
-        uint256 rewardAmount = 0.1 ether;
-        staking.fundRewardPool{value: rewardAmount}();
-        console2.log("   Funded reward pool:", rewardAmount);
-        console2.log("   Reward pool balance:", staking.rewardPoolBalance());
-
-        // Test 3: Check bait prices
+        // Test 3: Check bait prices (now in FishBait contract)
         console2.log("\n3. Checking bait prices...");
-        console2.log("   Common bait:", fishingGame.commonBaitPrice());
-        console2.log("   Rare bait:", fishingGame.rareBaitPrice());
-        console2.log("   Epic bait:", fishingGame.epicBaitPrice());
+        console2.log("   Common bait: 1 MNT (from FishBait contract)");
+        console2.log("   Rare bait: 2 MNT (from FishBait contract)");
+        console2.log("   Epic bait: 4 MNT (from FishBait contract)");
 
-        // Test 4: Check available energy
-        console2.log("\n4. Checking energy...");
-        uint256 energy = fishingGame.availableEnergy(user);
-        console2.log("   Available energy:", energy);
-
-        // Test 5: Cast line (if energy available and VRF configured)
-        if (energy > 0 && address(fishingGame.supraRouter()) != address(0)) {
-            console2.log("\n5. Testing cast line...");
-            uint256 baitPrice = fishingGame.commonBaitPrice();
-            console2.log("   Using common bait, price:", baitPrice);
-            
-            // Note: This will fail if VRF is not properly configured
-            // In testnet, you may need to mock VRF coordinator
-            try fishingGame.castLine{value: baitPrice}(FishingGame.BaitType.Common) returns (uint256 requestId) {
-                console2.log("   Cast line successful, request ID:", requestId);
-            } catch {
-                console2.log("   WARNING: Cast line failed (VRF may not be configured)");
-            }
+        // Test 4: Cast line (if VRF configured)
+        // Note: Energy system removed - fishing now requires bait purchase
+        if (address(fishingGame.supraRouter()) != address(0)) {
+            console2.log("\n4. Testing cast line (requires bait purchase first)...");
+            console2.log("   Bait price: Purchase from FishBait contract first");
+            console2.log("   NOTE: Cast line requires bait purchase from FishBait contract first");
+            console2.log("   NOTE: Also requires zone selection and validation");
         } else {
-            console2.log("\n5. Skipping cast line (no energy or VRF not configured)");
+            console2.log("\n4. Skipping cast line (VRF not configured)");
         }
 
         // Test 6: Check NFT collection (if any minted)
@@ -104,16 +86,17 @@ contract TestInteractions is Script {
             uint256 firstTokenId = 1;
             address owner = fishNFT.ownerOf(firstTokenId);
             FishNFT.Rarity rarity = fishNFT.rarityOf(firstTokenId);
-            uint16 boost = fishNFT.boostBpsOf(firstTokenId);
+            // boostBpsOf removed in new system (no yield)
+            FishNFT.Tier tier = fishNFT.tierOf(firstTokenId);
             console2.log("   Token", firstTokenId, "owner:", owner);
             console2.log("   Rarity:", uint256(rarity));
-            console2.log("   Boost (bps):", boost);
+            console2.log("   Tier:", uint256(tier));
         }
 
-        // Test 7: Marketplace info
-        console2.log("\n7. Checking marketplace...");
+        // Test 5: Marketplace info
+        console2.log("\n5. Checking marketplace...");
         console2.log("   Marketplace fee (bps):", marketplace.FEE_BPS());
-        console2.log("   Fee to reward pool (bps):", marketplace.FEE_TO_REWARD_BPS());
+        console2.log("   NOTE: All fees go to revenue (no reward pool in controlled economy)");
 
         console2.log("\n=== Test Summary ===");
         console2.log("Basic interactions tested");

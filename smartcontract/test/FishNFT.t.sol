@@ -9,7 +9,7 @@ import {FishingGame} from "../src/FishingGame.sol";
 contract FishNFTTest is Test {
     FishNFT public fishNFT;
     FishItStaking public staking;
-    FishingGame public fishingGame;
+    address public fishingGame; // Changed to address (not contract instance)
     address public owner;
     address public user1;
     address public user2;
@@ -24,18 +24,17 @@ contract FishNFTTest is Test {
         vm.prank(owner);
         fishNFT = new FishNFT(owner);
 
-        // Setup staking and game for integration
+        // Setup staking for integration tests
         vm.prank(owner);
         staking = new FishItStaking(owner);
 
+        // For NFT mint tests, we need to deploy a minimal FishingGame contract
+        // or use a mock address that we can prank
+        // Since mintFish checks msg.sender, we need to use vm.prank when calling it
+        // So we can use any address and prank it
+        fishingGame = address(0x99);
         vm.prank(owner);
-        fishingGame = new FishingGame(owner, staking, fishNFT, owner);
-
-        vm.prank(owner);
-        staking.setFishingGame(address(fishingGame));
-
-        vm.prank(owner);
-        fishNFT.setFishingGame(address(fishingGame));
+        fishNFT.setFishingGame(fishingGame);
     }
 
     // =========================================================================
@@ -70,7 +69,7 @@ contract FishNFTTest is Test {
 
     function test_MintFish_OnlyFishingGame() public {
         vm.prank(address(fishingGame));
-        uint256 tokenId = fishNFT.mintFish(user1, FishNFT.Rarity.Common);
+        uint256 tokenId = fishNFT.mintFishWithRarity(user1, FishNFT.Rarity.Common);
 
         assertEq(tokenId, 1);
         assertEq(fishNFT.ownerOf(tokenId), user1);
@@ -80,15 +79,15 @@ contract FishNFTTest is Test {
     function test_MintFish_RevertsIfNotFishingGame() public {
         vm.expectRevert(FishNFT.NotFishingGame.selector);
         vm.prank(user1);
-        fishNFT.mintFish(user1, FishNFT.Rarity.Common);
+        fishNFT.mintFishWithRarity(user1, FishNFT.Rarity.Common);
     }
 
     function test_MintFish_IncrementsTokenId() public {
         vm.prank(address(fishingGame));
-        uint256 tokenId1 = fishNFT.mintFish(user1, FishNFT.Rarity.Common);
+        uint256 tokenId1 = fishNFT.mintFishWithRarity(user1, FishNFT.Rarity.Common);
 
         vm.prank(address(fishingGame));
-        uint256 tokenId2 = fishNFT.mintFish(user2, FishNFT.Rarity.Rare);
+        uint256 tokenId2 = fishNFT.mintFishWithRarity(user2, FishNFT.Rarity.Rare);
 
         assertEq(tokenId1, 1);
         assertEq(tokenId2, 2);
@@ -97,27 +96,28 @@ contract FishNFTTest is Test {
 
     function test_MintFish_SetsRarity() public {
         vm.prank(address(fishingGame));
-        uint256 tokenId = fishNFT.mintFish(user1, FishNFT.Rarity.Epic);
+        uint256 tokenId = fishNFT.mintFishWithRarity(user1, FishNFT.Rarity.Epic);
 
         assertEq(uint256(fishNFT.rarityOf(tokenId)), uint256(FishNFT.Rarity.Epic));
     }
 
-    function test_MintFish_SetsBoost() public {
+    function test_MintFish_SetsTier() public {
+        // boostBpsOf removed in new system (no yield)
         vm.prank(address(fishingGame));
-        uint256 commonToken = fishNFT.mintFish(user1, FishNFT.Rarity.Common);
-        assertEq(fishNFT.boostBpsOf(commonToken), 0);
+        uint256 commonToken = fishNFT.mintFishWithRarity(user1, FishNFT.Rarity.Common);
+        assertEq(uint256(fishNFT.tierOf(commonToken)), uint256(FishNFT.Tier.Common));
 
         vm.prank(address(fishingGame));
-        uint256 rareToken = fishNFT.mintFish(user1, FishNFT.Rarity.Rare);
-        assertEq(fishNFT.boostBpsOf(rareToken), 100); // 1%
+        uint256 rareToken = fishNFT.mintFishWithRarity(user1, FishNFT.Rarity.Rare);
+        assertEq(uint256(fishNFT.tierOf(rareToken)), uint256(FishNFT.Tier.Rare));
 
         vm.prank(address(fishingGame));
-        uint256 epicToken = fishNFT.mintFish(user1, FishNFT.Rarity.Epic);
-        assertEq(fishNFT.boostBpsOf(epicToken), 300); // 3%
+        uint256 epicToken = fishNFT.mintFishWithRarity(user1, FishNFT.Rarity.Epic);
+        assertEq(uint256(fishNFT.tierOf(epicToken)), uint256(FishNFT.Tier.Epic));
 
         vm.prank(address(fishingGame));
-        uint256 legendaryToken = fishNFT.mintFish(user1, FishNFT.Rarity.Legendary);
-        assertEq(fishNFT.boostBpsOf(legendaryToken), 500); // 5%
+        uint256 legendaryToken = fishNFT.mintFishWithRarity(user1, FishNFT.Rarity.Legendary);
+        assertEq(uint256(fishNFT.tierOf(legendaryToken)), uint256(FishNFT.Tier.Legendary));
     }
 
     function test_MintFish_AllRarities() public {
@@ -130,7 +130,7 @@ contract FishNFTTest is Test {
 
         for (uint256 i = 0; i < rarities.length; i++) {
             vm.prank(address(fishingGame));
-            uint256 tokenId = fishNFT.mintFish(user1, rarities[i]);
+            uint256 tokenId = fishNFT.mintFishWithRarity(user1, rarities[i]);
             assertEq(uint256(fishNFT.rarityOf(tokenId)), uint256(rarities[i]));
         }
     }
@@ -141,7 +141,7 @@ contract FishNFTTest is Test {
 
     function test_SetTokenURI_OnlyOwner() public {
         vm.prank(address(fishingGame));
-        uint256 tokenId = fishNFT.mintFish(user1, FishNFT.Rarity.Common);
+        uint256 tokenId = fishNFT.mintFishWithRarity(user1, FishNFT.Rarity.Common);
 
         vm.prank(owner);
         fishNFT.setTokenURI(tokenId, TOKEN_URI);
@@ -151,7 +151,7 @@ contract FishNFTTest is Test {
 
     function test_SetTokenURI_RevertsIfNotOwner() public {
         vm.prank(address(fishingGame));
-        uint256 tokenId = fishNFT.mintFish(user1, FishNFT.Rarity.Common);
+        uint256 tokenId = fishNFT.mintFishWithRarity(user1, FishNFT.Rarity.Common);
 
         vm.expectRevert();
         vm.prank(user1);
@@ -166,7 +166,7 @@ contract FishNFTTest is Test {
 
     function test_SetTokenURI_CanOnlySetOnce() public {
         vm.prank(address(fishingGame));
-        uint256 tokenId = fishNFT.mintFish(user1, FishNFT.Rarity.Common);
+        uint256 tokenId = fishNFT.mintFishWithRarity(user1, FishNFT.Rarity.Common);
 
         vm.prank(owner);
         fishNFT.setTokenURI(tokenId, TOKEN_URI);
@@ -178,7 +178,7 @@ contract FishNFTTest is Test {
 
     function test_SetTokenURI_EmitsEvent() public {
         vm.prank(address(fishingGame));
-        uint256 tokenId = fishNFT.mintFish(user1, FishNFT.Rarity.Common);
+        uint256 tokenId = fishNFT.mintFishWithRarity(user1, FishNFT.Rarity.Common);
 
         vm.prank(owner);
         vm.expectEmit(true, false, false, false);
@@ -188,7 +188,7 @@ contract FishNFTTest is Test {
 
     function test_TokenURI_ReturnsEmptyIfNotSet() public {
         vm.prank(address(fishingGame));
-        uint256 tokenId = fishNFT.mintFish(user1, FishNFT.Rarity.Common);
+        uint256 tokenId = fishNFT.mintFishWithRarity(user1, FishNFT.Rarity.Common);
 
         // Should return empty string if not set
         string memory uri = fishNFT.tokenURI(tokenId);
@@ -208,19 +208,19 @@ contract FishNFTTest is Test {
         assertEq(fishNFT.balanceOf(user1), 0);
 
         vm.prank(address(fishingGame));
-        fishNFT.mintFish(user1, FishNFT.Rarity.Common);
+        fishNFT.mintFishWithRarity(user1, FishNFT.Rarity.Common);
 
         assertEq(fishNFT.balanceOf(user1), 1);
 
         vm.prank(address(fishingGame));
-        fishNFT.mintFish(user1, FishNFT.Rarity.Rare);
+        fishNFT.mintFishWithRarity(user1, FishNFT.Rarity.Rare);
 
         assertEq(fishNFT.balanceOf(user1), 2);
     }
 
     function test_Transfer_Works() public {
         vm.prank(address(fishingGame));
-        uint256 tokenId = fishNFT.mintFish(user1, FishNFT.Rarity.Common);
+        uint256 tokenId = fishNFT.mintFishWithRarity(user1, FishNFT.Rarity.Common);
 
         vm.prank(user1);
         fishNFT.transferFrom(user1, user2, tokenId);

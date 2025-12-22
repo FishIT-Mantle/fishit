@@ -6,12 +6,16 @@ import {FishMarketplace} from "../src/FishMarketplace.sol";
 import {FishItStaking} from "../src/FishItStaking.sol";
 import {FishNFT} from "../src/FishNFT.sol";
 import {FishingGame} from "../src/FishingGame.sol";
+import {ZoneValidator} from "../src/ZoneValidator.sol";
+import {FishBait} from "../src/FishBait.sol";
 
 contract FishMarketplaceTest is Test {
     FishMarketplace public marketplace;
     FishItStaking public staking;
     FishNFT public fishNFT;
     FishingGame public fishingGame;
+    ZoneValidator public zoneValidator;
+    FishBait public fishBait;
     address public admin;
     address public seller;
     address public buyer;
@@ -19,7 +23,6 @@ contract FishMarketplaceTest is Test {
 
     uint256 public constant LISTING_PRICE = 1 ether;
     uint256 public constant FEE_BPS = 250; // 2.5%
-    uint256 public constant FEE_TO_REWARD_BPS = 5000; // 50% of fee
 
     function setUp() public {
         admin = address(0x1);
@@ -34,21 +37,34 @@ contract FishMarketplaceTest is Test {
         fishNFT = new FishNFT(admin);
 
         vm.prank(admin);
-        fishingGame = new FishingGame(admin, staking, fishNFT, revenueRecipient);
+        zoneValidator = new ZoneValidator(admin, staking, fishNFT);
 
         vm.prank(admin);
-        marketplace = new FishMarketplace(admin, staking, revenueRecipient);
+        fishBait = new FishBait(admin);
+
+        vm.prank(admin);
+        fishingGame = new FishingGame(
+            admin,
+            staking,
+            fishNFT,
+            zoneValidator,
+            fishBait,
+            revenueRecipient
+        );
+
+        vm.prank(admin);
+        marketplace = new FishMarketplace(admin, revenueRecipient);
 
         // Wire contracts
         vm.prank(admin);
-        staking.setFishingGame(address(fishingGame));
+        fishNFT.setFishingGame(address(fishingGame));
 
         vm.prank(admin);
-        fishNFT.setFishingGame(address(fishingGame));
+        fishBait.setFishingGame(address(fishingGame));
 
         // Mint NFT for seller
         vm.prank(address(fishingGame));
-        fishNFT.mintFish(seller, FishNFT.Rarity.Common);
+        fishNFT.mintFish(seller, FishNFT.Tier.Common);
     }
 
     // =========================================================================
@@ -57,19 +73,15 @@ contract FishMarketplaceTest is Test {
 
     function test_Constructor_SetsValues() public {
         assertEq(marketplace.admin(), admin);
-        assertEq(address(marketplace.staking()), address(staking));
         assertEq(marketplace.revenueRecipient(), revenueRecipient);
     }
 
     function test_Constructor_RevertsIfZeroAddress() public {
         vm.expectRevert("Admin zero");
-        new FishMarketplace(address(0), staking, revenueRecipient);
-
-        vm.expectRevert("Staking zero");
-        new FishMarketplace(admin, FishItStaking(address(0)), revenueRecipient);
+        new FishMarketplace(address(0), revenueRecipient);
 
         vm.expectRevert("Revenue zero");
-        new FishMarketplace(admin, staking, address(0));
+        new FishMarketplace(admin, address(0));
     }
 
     function test_SetAdmin_OnlyAdmin() public {
@@ -196,7 +208,7 @@ contract FishMarketplaceTest is Test {
     }
 
     // =========================================================================
-    // Buy Tests
+    // Buy Tests (all fees go to revenue in controlled economy)
     // =========================================================================
 
     function test_Buy_TransfersNFT() public {
@@ -231,26 +243,22 @@ contract FishMarketplaceTest is Test {
         assertEq(seller.balance, sellerBalanceBefore + expectedSellerPayment);
     }
 
-    function test_Buy_SplitsFee() public {
+    function test_Buy_AllFeesToRevenue() public {
         vm.prank(seller);
         fishNFT.approve(address(marketplace), 1);
 
         vm.prank(seller);
         marketplace.list(address(fishNFT), 1, LISTING_PRICE);
 
-        uint256 rewardPoolBefore = staking.rewardPoolBalance();
         uint256 revenueBefore = revenueRecipient.balance;
-
         uint256 fee = (LISTING_PRICE * FEE_BPS) / 10000;
-        uint256 toReward = (fee * FEE_TO_REWARD_BPS) / 10000;
-        uint256 toRevenue = fee - toReward;
 
         vm.deal(buyer, LISTING_PRICE);
         vm.prank(buyer);
         marketplace.buy{value: LISTING_PRICE}(address(fishNFT), 1);
 
-        assertEq(staking.rewardPoolBalance(), rewardPoolBefore + toReward);
-        assertEq(revenueRecipient.balance, revenueBefore + toRevenue);
+        // All fees go to revenue (no reward pool in controlled economy)
+        assertEq(revenueRecipient.balance, revenueBefore + fee);
     }
 
     function test_Buy_RevertsIfNotListed() public {
@@ -321,4 +329,3 @@ contract FishMarketplaceTest is Test {
         assertEq(listedSeller, address(0));
     }
 }
-

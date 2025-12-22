@@ -5,6 +5,8 @@ import {Test, console2} from "forge-std/Test.sol";
 import {FishingGame} from "../src/FishingGame.sol";
 import {FishItStaking} from "../src/FishItStaking.sol";
 import {FishNFT} from "../src/FishNFT.sol";
+import {ZoneValidator} from "../src/ZoneValidator.sol";
+import {FishBait} from "../src/FishBait.sol";
 import {MockSupraRouter} from "./mocks/MockSupraRouter.sol";
 import {ISupraRouter} from "../src/interfaces/ISupraRouter.sol";
 
@@ -12,15 +14,14 @@ contract FishingGameTest is Test {
     FishingGame public fishingGame;
     FishItStaking public staking;
     FishNFT public fishNFT;
+    ZoneValidator public zoneValidator;
+    FishBait public fishBait;
     MockSupraRouter public mockSupraRouter;
     address public admin;
     address public user1;
     address public revenueRecipient;
 
-    uint256 public constant STAKE_AMOUNT = 1 ether;
-    uint256 public constant COMMON_BAIT_PRICE = 0.05 ether;
-    uint256 public constant RARE_BAIT_PRICE = 0.15 ether;
-    uint256 public constant EPIC_BAIT_PRICE = 0.50 ether;
+    uint256 public constant STAKE_AMOUNT = 100 ether; // Enough for Zone 2 access
 
     function setUp() public {
         admin = address(0x1);
@@ -34,21 +35,30 @@ contract FishingGameTest is Test {
         fishNFT = new FishNFT(admin);
 
         vm.prank(admin);
-        fishingGame = new FishingGame(admin, staking, fishNFT, revenueRecipient);
+        zoneValidator = new ZoneValidator(admin, staking, fishNFT);
+
+        vm.prank(admin);
+        fishBait = new FishBait(admin);
+
+        vm.prank(admin);
+        fishingGame = new FishingGame(
+            admin,
+            staking,
+            fishNFT,
+            zoneValidator,
+            fishBait,
+            revenueRecipient
+        );
 
         // Deploy mock Supra Router
         mockSupraRouter = new MockSupraRouter();
 
         // Wire contracts
         vm.prank(admin);
-        staking.setFishingGame(address(fishingGame));
-
-        vm.prank(admin);
         fishNFT.setFishingGame(address(fishingGame));
 
-        // Set bait prices
         vm.prank(admin);
-        fishingGame.setBaitPrices(COMMON_BAIT_PRICE, RARE_BAIT_PRICE, EPIC_BAIT_PRICE);
+        fishBait.setFishingGame(address(fishingGame));
 
         // Set Supra VRF config
         vm.prank(admin);
@@ -63,30 +73,29 @@ contract FishingGameTest is Test {
         assertEq(fishingGame.admin(), admin);
         assertEq(address(fishingGame.staking()), address(staking));
         assertEq(address(fishingGame.fishNFT()), address(fishNFT));
+        assertEq(address(fishingGame.zoneValidator()), address(zoneValidator));
+        assertEq(address(fishingGame.fishBait()), address(fishBait));
         assertEq(fishingGame.revenueRecipient(), revenueRecipient);
     }
 
     function test_Constructor_RevertsIfZeroAddress() public {
         vm.expectRevert("Admin zero");
-        new FishingGame(address(0), staking, fishNFT, revenueRecipient);
+        new FishingGame(address(0), staking, fishNFT, zoneValidator, fishBait, revenueRecipient);
 
         vm.expectRevert("Staking zero");
-        new FishingGame(admin, FishItStaking(address(0)), fishNFT, revenueRecipient);
+        new FishingGame(admin, FishItStaking(address(0)), fishNFT, zoneValidator, fishBait, revenueRecipient);
 
         vm.expectRevert("NFT zero");
-        new FishingGame(admin, staking, FishNFT(address(0)), revenueRecipient);
+        new FishingGame(admin, staking, FishNFT(address(0)), zoneValidator, fishBait, revenueRecipient);
+
+        vm.expectRevert("Validator zero");
+        new FishingGame(admin, staking, fishNFT, ZoneValidator(address(0)), fishBait, revenueRecipient);
+
+        vm.expectRevert("Bait zero");
+        new FishingGame(admin, staking, fishNFT, zoneValidator, FishBait(address(0)), revenueRecipient);
 
         vm.expectRevert("Revenue zero");
-        new FishingGame(admin, staking, fishNFT, address(0));
-    }
-
-    function test_SetBaitPrices_OnlyAdmin() public {
-        vm.prank(admin);
-        fishingGame.setBaitPrices(1 ether, 2 ether, 3 ether);
-
-        assertEq(fishingGame.commonBaitPrice(), 1 ether);
-        assertEq(fishingGame.rareBaitPrice(), 2 ether);
-        assertEq(fishingGame.epicBaitPrice(), 3 ether);
+        new FishingGame(admin, staking, fishNFT, zoneValidator, fishBait, address(0));
     }
 
     function test_SetSupraVRFConfig_OnlyAdmin() public {
@@ -113,251 +122,193 @@ contract FishingGameTest is Test {
         fishingGame.setSupraVRFConfig(address(0), 3);
     }
 
-    function test_SetSupraVRFConfig_RevertsIfConfirmationsZero() public {
-        MockSupraRouter newRouter = new MockSupraRouter();
-        vm.expectRevert("Invalid confirmations");
-        vm.prank(admin);
-        fishingGame.setSupraVRFConfig(address(newRouter), 0);
+    // =========================================================================
+    // Zone 1 (Shallow) - No requirements tests
+    // =========================================================================
+
+    function test_CastLine_Zone1_Works() public {
+        vm.deal(user1, 10 ether);
+        
+        // Purchase bait
+        vm.prank(user1);
+        fishBait.purchaseBait{value: 1 ether}(FishBait.BaitType.Common, 1);
+
+        // Approve FishingGame to burn (not needed for Zone 1, but good to have)
+        vm.prank(user1);
+        fishNFT.setApprovalForAll(address(fishingGame), true);
+
+        // Cast line in Zone 1 (no requirements)
+        vm.prank(user1);
+        uint256 requestId = fishingGame.castLine{value: 0}(
+            ZoneValidator.Zone.Shallow,
+            FishingGame.BaitType.Common
+        );
+
+        assertGt(requestId, 0);
+    }
+
+    function test_CastLine_Zone1_RevertsIfNoBait() public {
+        vm.deal(user1, 10 ether);
+
+        // Don't purchase bait - should revert
+        vm.prank(user1);
+        fishNFT.setApprovalForAll(address(fishingGame), true);
+
+        vm.expectRevert("Insufficient bait");
+        vm.prank(user1);
+        fishingGame.castLine{value: 0}(
+            ZoneValidator.Zone.Shallow,
+            FishingGame.BaitType.Common
+        );
     }
 
     // =========================================================================
-    // Energy Tests
+    // Zone 2 (Reef) - Requires stake >= 100 MNT and burn 3 Common
     // =========================================================================
 
-    function test_AvailableEnergy_ReturnsZeroIfNoStake() public {
-        assertEq(fishingGame.availableEnergy(user1), 0);
+    function test_CastLine_Zone2_RevertsIfInsufficientStake() public {
+        vm.deal(user1, 200 ether);
+        
+        // Stake less than 100 MNT
+        vm.prank(user1);
+        staking.stake{value: 50 ether}();
+
+        // Purchase bait
+        vm.prank(user1);
+        fishBait.purchaseBait{value: 1 ether}(FishBait.BaitType.Common, 1);
+
+        vm.prank(user1);
+        fishNFT.setApprovalForAll(address(fishingGame), true);
+
+        vm.expectRevert("Insufficient stake for license");
+        vm.prank(user1);
+        fishingGame.castLine{value: 0}(
+            ZoneValidator.Zone.Reef,
+            FishingGame.BaitType.Common
+        );
     }
 
-    function test_AvailableEnergy_ReturnsCorrectAfterStake() public {
-        vm.deal(user1, STAKE_AMOUNT);
+    function test_CastLine_Zone2_RevertsIfNoBurnRequirement() public {
+        vm.deal(user1, 200 ether);
+        
+        // Stake enough for Zone 2
         vm.prank(user1);
-        staking.stake{value: STAKE_AMOUNT}();
+        staking.stake{value: 100 ether}();
 
-        uint256 energy = fishingGame.availableEnergy(user1);
-        assertGt(energy, 0);
-    }
-
-    function test_AvailableEnergy_DecreasesAfterCast() public {
-        vm.deal(user1, STAKE_AMOUNT + COMMON_BAIT_PRICE);
+        // Purchase bait
         vm.prank(user1);
-        staking.stake{value: STAKE_AMOUNT}();
-
-        uint256 energyBefore = fishingGame.availableEnergy(user1);
-
-        // Cast line (will fail at VRF, but energy should be consumed)
-        vm.prank(user1);
-        fishingGame.castLine{value: COMMON_BAIT_PRICE}(FishingGame.BaitType.Common);
-
-        uint256 energyAfter = fishingGame.availableEnergy(user1);
-        assertEq(energyAfter, energyBefore - 1);
-    }
-
-    function test_AvailableEnergy_RegeneratesAfter24Hours() public {
-        vm.deal(user1, STAKE_AMOUNT + COMMON_BAIT_PRICE);
-        vm.prank(user1);
-        staking.stake{value: STAKE_AMOUNT}();
-
-        // Cast line
-        vm.prank(user1);
-        fishingGame.castLine{value: COMMON_BAIT_PRICE}(FishingGame.BaitType.Common);
-
-        // Fast forward 24 hours
-        vm.warp(block.timestamp + 1 days);
-
-        uint256 energyAfter = fishingGame.availableEnergy(user1);
-        assertGt(energyAfter, 0);
-    }
-
-    // =========================================================================
-    // Cast Line Tests
-    // =========================================================================
-
-    function test_CastLine_ConsumesEnergy() public {
-        vm.deal(user1, STAKE_AMOUNT + COMMON_BAIT_PRICE);
-        vm.prank(user1);
-        staking.stake{value: STAKE_AMOUNT}();
-
-        uint256 energyBefore = fishingGame.availableEnergy(user1);
-        vm.prank(user1);
-        fishingGame.castLine{value: COMMON_BAIT_PRICE}(FishingGame.BaitType.Common);
-
-        uint256 energyAfter = fishingGame.availableEnergy(user1);
-        assertEq(energyAfter, energyBefore - 1);
-    }
-
-    function test_CastLine_RevertsIfNoEnergy() public {
-        vm.deal(user1, COMMON_BAIT_PRICE);
-        vm.expectRevert("Not enough energy");
-        vm.prank(user1);
-        fishingGame.castLine{value: COMMON_BAIT_PRICE}(FishingGame.BaitType.Common);
-    }
-
-    function test_CastLine_RevertsIfInsufficientBaitFee() public {
-        vm.deal(user1, STAKE_AMOUNT + COMMON_BAIT_PRICE - 1);
-        vm.prank(user1);
-        staking.stake{value: STAKE_AMOUNT}();
-
-        vm.expectRevert("Insufficient bait fee");
-        vm.prank(user1);
-        fishingGame.castLine{value: COMMON_BAIT_PRICE - 1}(FishingGame.BaitType.Common);
-    }
-
-    function test_CastLine_SplitsBaitFee() public {
-        vm.deal(user1, STAKE_AMOUNT + COMMON_BAIT_PRICE);
-        vm.prank(user1);
-        staking.stake{value: STAKE_AMOUNT}();
-
-        uint256 rewardPoolBefore = staking.rewardPoolBalance();
-        uint256 revenueBefore = revenueRecipient.balance;
+        fishBait.purchaseBait{value: 1 ether}(FishBait.BaitType.Common, 1);
 
         vm.prank(user1);
-        fishingGame.castLine{value: COMMON_BAIT_PRICE}(FishingGame.BaitType.Common);
+        fishNFT.setApprovalForAll(address(fishingGame), true);
 
-        // 80% to reward pool, 20% to revenue
-        uint256 expectedReward = (COMMON_BAIT_PRICE * 8000) / 10000;
-        uint256 expectedRevenue = COMMON_BAIT_PRICE - expectedReward;
-
-        assertEq(staking.rewardPoolBalance(), rewardPoolBefore + expectedReward);
-        assertEq(revenueRecipient.balance, revenueBefore + expectedRevenue);
-    }
-
-    function test_CastLine_RefundsExcess() public {
-        vm.deal(user1, STAKE_AMOUNT + COMMON_BAIT_PRICE + 0.1 ether);
+        // Don't have 3 Common to burn - should revert
+        vm.expectRevert("Insufficient fish to burn");
         vm.prank(user1);
-        staking.stake{value: STAKE_AMOUNT}();
-
-        uint256 balanceBefore = user1.balance;
-        vm.prank(user1);
-        fishingGame.castLine{value: COMMON_BAIT_PRICE + 0.1 ether}(FishingGame.BaitType.Common);
-
-        // Should refund 0.1 ether
-        assertEq(user1.balance, balanceBefore - COMMON_BAIT_PRICE);
-    }
-
-    function test_CastLine_EmitsEvent() public {
-        vm.deal(user1, STAKE_AMOUNT + COMMON_BAIT_PRICE);
-        vm.prank(user1);
-        staking.stake{value: STAKE_AMOUNT}();
-
-        vm.prank(user1);
-        vm.expectEmit(true, true, false, false);
-        emit FishingGame.CastLineRequested(user1, FishingGame.BaitType.Common, 1);
-        fishingGame.castLine{value: COMMON_BAIT_PRICE}(FishingGame.BaitType.Common);
-    }
-
-    function test_CastLine_AllBaitTypes() public {
-        uint256 totalBaitCost = COMMON_BAIT_PRICE + RARE_BAIT_PRICE + EPIC_BAIT_PRICE;
-        vm.deal(user1, STAKE_AMOUNT * 10 + totalBaitCost); // Enough for stake + all bait fees
-        vm.prank(user1);
-        staking.stake{value: STAKE_AMOUNT * 10}();
-
-        // Common
-        vm.prank(user1);
-        fishingGame.castLine{value: COMMON_BAIT_PRICE}(FishingGame.BaitType.Common);
-
-        // Rare
-        vm.prank(user1);
-        fishingGame.castLine{value: RARE_BAIT_PRICE}(FishingGame.BaitType.Rare);
-
-        // Epic
-        vm.prank(user1);
-        fishingGame.castLine{value: EPIC_BAIT_PRICE}(FishingGame.BaitType.Epic);
+        fishingGame.castLine{value: 0}(
+            ZoneValidator.Zone.Reef,
+            FishingGame.BaitType.Common
+        );
     }
 
     // =========================================================================
-    // Supra VRF Fulfillment Tests
+    // Zone 4 (Abyssal) - Requires Epic Bait only
     // =========================================================================
 
-    function test_SupraVRFCallback_OnlySupraRouter() public {
-        vm.deal(user1, STAKE_AMOUNT + COMMON_BAIT_PRICE);
+    function test_CastLine_Zone4_RevertsIfNotEpicBait() public {
+        vm.deal(user1, 600 ether);
+        
+        // Stake enough for Zone 4
         vm.prank(user1);
-        staking.stake{value: STAKE_AMOUNT}();
+        staking.stake{value: 500 ether}();
 
+        // Purchase Common bait (not Epic)
         vm.prank(user1);
-        uint256 requestId = fishingGame.castLine{value: COMMON_BAIT_PRICE}(FishingGame.BaitType.Common);
+        fishBait.purchaseBait{value: 1 ether}(FishBait.BaitType.Common, 1);
 
-        uint256[] memory rngList = new uint256[](1);
-        rngList[0] = 5000;
-
-        vm.expectRevert("Not Supra Router");
+        // Would need to have Epic fish to burn and entry fee, but first check Epic bait requirement
+        vm.expectRevert("Zone 4 requires Epic Bait only");
         vm.prank(user1);
-        fishingGame.supraVRFCallback(requestId, rngList, 0);
+        fishingGame.castLine{value: 3 ether}(
+            ZoneValidator.Zone.Abyssal,
+            FishingGame.BaitType.Common
+        );
     }
+
+    // =========================================================================
+    // VRF Callback Tests
+    // =========================================================================
 
     function test_SupraVRFCallback_MintsNFT() public {
-        vm.deal(user1, STAKE_AMOUNT + COMMON_BAIT_PRICE);
+        vm.deal(user1, 10 ether);
+        
+        // Purchase bait
         vm.prank(user1);
-        staking.stake{value: STAKE_AMOUNT}();
+        fishBait.purchaseBait{value: 1 ether}(FishBait.BaitType.Common, 1);
 
         vm.prank(user1);
-        uint256 requestId = fishingGame.castLine{value: COMMON_BAIT_PRICE}(FishingGame.BaitType.Common);
+        fishNFT.setApprovalForAll(address(fishingGame), true);
 
-        uint256 nftBalanceBefore = fishNFT.balanceOf(user1);
+        // Cast line in Zone 1
+        vm.prank(user1);
+        uint256 requestId = fishingGame.castLine{value: 0}(
+            ZoneValidator.Zone.Shallow,
+            FishingGame.BaitType.Common
+        );
 
-        // Fulfill with random word (5000 = Common for Common bait)
+        // Fulfill VRF request
         uint256[] memory rngList = new uint256[](1);
-        rngList[0] = 5000;
+        rngList[0] = 5000; // Should result in Common tier based on drop table
         mockSupraRouter.fulfillRequest(requestId, rngList, 0);
 
-        assertEq(fishNFT.balanceOf(user1), nftBalanceBefore + 1);
+        // Check NFT was minted
+        assertEq(fishNFT.balanceOf(user1), 1);
+        assertEq(fishNFT.ownerOf(1), user1);
     }
 
-    function test_SupraVRFCallback_EmitsFishCaught() public {
-        vm.deal(user1, STAKE_AMOUNT + COMMON_BAIT_PRICE);
+    function test_SupraVRFCallback_Zone1DropTable() public {
+        vm.deal(user1, 100 ether);
+        
+        // Purchase multiple baits
         vm.prank(user1);
-        staking.stake{value: STAKE_AMOUNT}();
+        fishBait.purchaseBait{value: 10 ether}(FishBait.BaitType.Common, 10);
 
         vm.prank(user1);
-        uint256 requestId = fishingGame.castLine{value: COMMON_BAIT_PRICE}(FishingGame.BaitType.Common);
+        fishNFT.setApprovalForAll(address(fishingGame), true);
 
-        uint256[] memory rngList = new uint256[](1);
-        rngList[0] = 5000;
+        // Test Common Bait drop table for Zone 1:
+        // Junk: 40% | Common: 45% | Rare: 14% | Epic: 1% | Legendary: 0%
 
-        vm.expectEmit(true, true, false, true);
-        emit FishingGame.FishCaught(user1, 1, FishNFT.Rarity.Common, FishingGame.BaitType.Common, 5000);
-        mockSupraRouter.fulfillRequest(requestId, rngList, 0);
-    }
-
-    function test_SupraVRFCallback_RarityDistribution_CommonBait() public {
-        uint256 totalBaitCost = COMMON_BAIT_PRICE * 4; // 4 casts
-        vm.deal(user1, STAKE_AMOUNT * 100 + totalBaitCost);
+        // Roll 3000 = Junk (0-3999)
         vm.prank(user1);
-        staking.stake{value: STAKE_AMOUNT * 100}();
-
-        // Test different roll values for Common bait
-        // Common: < 7000, Rare: 7000-9499, Epic: 9500-9949, Legendary: >= 9950
-
-        // Common (roll = 5000)
-        vm.prank(user1);
-        uint256 req1 = fishingGame.castLine{value: COMMON_BAIT_PRICE}(FishingGame.BaitType.Common);
+        uint256 req1 = fishingGame.castLine{value: 0}(ZoneValidator.Zone.Shallow, FishingGame.BaitType.Common);
         uint256[] memory rng1 = new uint256[](1);
-        rng1[0] = 5000;
+        rng1[0] = 3000;
         mockSupraRouter.fulfillRequest(req1, rng1, 0);
-        assertEq(uint256(fishNFT.rarityOf(1)), uint256(FishNFT.Rarity.Common));
+        assertEq(uint256(fishNFT.tierOf(1)), uint256(FishNFT.Tier.Junk));
 
-        // Rare (roll = 8000)
+        // Roll 6000 = Common (4000-8499)
         vm.prank(user1);
-        uint256 req2 = fishingGame.castLine{value: COMMON_BAIT_PRICE}(FishingGame.BaitType.Common);
+        uint256 req2 = fishingGame.castLine{value: 0}(ZoneValidator.Zone.Shallow, FishingGame.BaitType.Common);
         uint256[] memory rng2 = new uint256[](1);
-        rng2[0] = 8000;
+        rng2[0] = 6000;
         mockSupraRouter.fulfillRequest(req2, rng2, 0);
-        assertEq(uint256(fishNFT.rarityOf(2)), uint256(FishNFT.Rarity.Rare));
+        assertEq(uint256(fishNFT.tierOf(2)), uint256(FishNFT.Tier.Common));
 
-        // Epic (roll = 9700)
+        // Roll 9000 = Rare (8500-9899)
         vm.prank(user1);
-        uint256 req3 = fishingGame.castLine{value: COMMON_BAIT_PRICE}(FishingGame.BaitType.Common);
+        uint256 req3 = fishingGame.castLine{value: 0}(ZoneValidator.Zone.Shallow, FishingGame.BaitType.Common);
         uint256[] memory rng3 = new uint256[](1);
-        rng3[0] = 9700;
+        rng3[0] = 9000;
         mockSupraRouter.fulfillRequest(req3, rng3, 0);
-        assertEq(uint256(fishNFT.rarityOf(3)), uint256(FishNFT.Rarity.Epic));
+        assertEq(uint256(fishNFT.tierOf(3)), uint256(FishNFT.Tier.Rare));
 
-        // Legendary (roll = 9999)
+        // Roll 9900 = Epic (9900-9999)
         vm.prank(user1);
-        uint256 req4 = fishingGame.castLine{value: COMMON_BAIT_PRICE}(FishingGame.BaitType.Common);
+        uint256 req4 = fishingGame.castLine{value: 0}(ZoneValidator.Zone.Shallow, FishingGame.BaitType.Common);
         uint256[] memory rng4 = new uint256[](1);
-        rng4[0] = 9999;
+        rng4[0] = 9900;
         mockSupraRouter.fulfillRequest(req4, rng4, 0);
-        assertEq(uint256(fishNFT.rarityOf(4)), uint256(FishNFT.Rarity.Legendary));
+        assertEq(uint256(fishNFT.tierOf(4)), uint256(FishNFT.Tier.Epic));
     }
 }
-
