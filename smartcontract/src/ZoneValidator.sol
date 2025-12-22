@@ -40,6 +40,7 @@ contract ZoneValidator {
 
     event ZoneAccessRecorded(address indexed user, Zone zone, uint256 timestamp);
     event ZoneRequirementsUpdated(Zone zone, ZoneRequirements requirements);
+    event FishingGameUpdated(address indexed oldGame, address indexed newGame);
 
     // -------------------------------------------------------------------------
     // Storage
@@ -48,6 +49,7 @@ contract ZoneValidator {
     address public admin;
     FishItStaking public staking;
     FishNFT public fishNFT;
+    address public fishingGame; // Only fishing game can record zone access
 
     // Zone requirements
     mapping(Zone => ZoneRequirements) public zoneRequirements;
@@ -61,6 +63,11 @@ contract ZoneValidator {
 
     modifier onlyAdmin() {
         require(msg.sender == admin, "Not admin");
+        _;
+    }
+
+    modifier onlyGame() {
+        require(msg.sender == fishingGame, "Not game");
         _;
     }
 
@@ -126,6 +133,12 @@ contract ZoneValidator {
     function setAdmin(address _newAdmin) external onlyAdmin {
         require(_newAdmin != address(0), "Admin zero");
         admin = _newAdmin;
+    }
+
+    function setFishingGame(address _fishingGame) external onlyAdmin {
+        require(_fishingGame != address(0), "Game zero");
+        emit FishingGameUpdated(fishingGame, _fishingGame);
+        fishingGame = _fishingGame;
     }
 
     function updateZoneRequirements(
@@ -222,9 +235,7 @@ contract ZoneValidator {
     /**
      * @notice Record zone access (called by FishingGame after successful entry)
      */
-    function recordZoneAccess(address user, Zone zone) external {
-        // In production, this should be onlyGame modifier
-        // For now, we'll allow anyone to call it (FishingGame will call it)
+    function recordZoneAccess(address user, Zone zone) external onlyGame {
         lastZoneAccess[user][zone] = block.timestamp;
         emit ZoneAccessRecorded(user, zone, block.timestamp);
     }

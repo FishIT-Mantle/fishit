@@ -57,6 +57,9 @@ contract FishMarketplaceTest is Test {
 
         // Wire contracts
         vm.prank(admin);
+        zoneValidator.setFishingGame(address(fishingGame));
+
+        vm.prank(admin);
         fishNFT.setFishingGame(address(fishingGame));
 
         vm.prank(admin);

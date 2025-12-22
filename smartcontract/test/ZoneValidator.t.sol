@@ -97,11 +97,16 @@ contract ZoneValidatorTest is Test {
     }
 
     function test_CanAccessZone_Zone4_CooldownActive() public {
+        address mockGame = address(0x99);
+        vm.prank(admin);
+        zoneValidator.setFishingGame(mockGame);
+
         vm.deal(user1, 500 ether);
         vm.prank(user1);
         staking.stake{value: 500 ether}();
 
-        // Record zone access
+        // Record zone access (must be called by game)
+        vm.prank(mockGame);
         zoneValidator.recordZoneAccess(user1, ZoneValidator.Zone.Abyssal);
 
         // Try to access immediately - should fail due to cooldown
@@ -111,11 +116,16 @@ contract ZoneValidatorTest is Test {
     }
 
     function test_CanAccessZone_Zone4_AfterCooldown() public {
+        address mockGame = address(0x99);
+        vm.prank(admin);
+        zoneValidator.setFishingGame(mockGame);
+
         vm.deal(user1, 500 ether);
         vm.prank(user1);
         staking.stake{value: 500 ether}();
 
-        // Record zone access
+        // Record zone access (must be called by game)
+        vm.prank(mockGame);
         zoneValidator.recordZoneAccess(user1, ZoneValidator.Zone.Abyssal);
 
         // Fast forward 25 hours (more than 24h cooldown)
@@ -196,17 +206,42 @@ contract ZoneValidatorTest is Test {
     }
 
     function test_GetNextAccessTime_WithPreviousAccess() public {
+        address mockGame = address(0x99);
+        vm.prank(admin);
+        zoneValidator.setFishingGame(mockGame);
+
+        vm.prank(mockGame);
         zoneValidator.recordZoneAccess(user1, ZoneValidator.Zone.Abyssal);
         uint256 nextAccess = zoneValidator.getNextAccessTime(user1, ZoneValidator.Zone.Abyssal);
         assertEq(nextAccess, block.timestamp + 1 days);
     }
 
-    function test_RecordZoneAccess_UpdatesTimestamp() public {
+    function test_RecordZoneAccess_OnlyGame() public {
+        address mockGame = address(0x99);
+        vm.prank(admin);
+        zoneValidator.setFishingGame(mockGame);
+
+        vm.prank(mockGame);
         zoneValidator.recordZoneAccess(user1, ZoneValidator.Zone.Abyssal);
         assertEq(zoneValidator.lastZoneAccess(user1, ZoneValidator.Zone.Abyssal), block.timestamp);
     }
 
+    function test_RecordZoneAccess_RevertsIfNotGame() public {
+        address mockGame = address(0x99);
+        vm.prank(admin);
+        zoneValidator.setFishingGame(mockGame);
+
+        vm.expectRevert("Not game");
+        vm.prank(user1);
+        zoneValidator.recordZoneAccess(user1, ZoneValidator.Zone.Abyssal);
+    }
+
     function test_RecordZoneAccess_EmitsEvent() public {
+        address mockGame = address(0x99);
+        vm.prank(admin);
+        zoneValidator.setFishingGame(mockGame);
+
+        vm.prank(mockGame);
         vm.expectEmit(true, true, false, false);
         emit ZoneValidator.ZoneAccessRecorded(user1, ZoneValidator.Zone.Abyssal, block.timestamp);
         zoneValidator.recordZoneAccess(user1, ZoneValidator.Zone.Abyssal);

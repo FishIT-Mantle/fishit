@@ -100,7 +100,10 @@ contract DeployFishIt is Script {
         );
         console2.log("   FishingGame deployed at:", address(fishingGame));
 
-        // Wire FishBait to FishingGame
+        // Wire contracts to FishingGame
+        vm.prank(admin);
+        zoneValidator.setFishingGame(address(fishingGame));
+
         vm.prank(admin);
         fishBait.setFishingGame(address(fishingGame));
 
