@@ -18,13 +18,19 @@ import {FishUpgrade} from "../src/FishUpgrade.sol";
  * Deployment order:
  * 1. FishItStaking (needs admin)
  * 2. FishNFT (needs owner)
- * 3. FishingGame (needs staking + NFT + revenue recipient)
- * 4. FishMarketplace (needs revenue recipient)
+ * 3. ZoneValidator (needs staking + NFT)
+ * 4. FishBait (needs admin)
+ * 5. FishingGame (needs staking + NFT + zoneValidator + fishBait + revenue recipient)
+ * 6. FishUpgrade (needs admin + NFT)
+ * 7. FishMarketplace (needs admin + revenue recipient)
  *
  * Post-deployment wiring:
- * - FishNFT.setFishingGame(FishingGame)
- * - FishingGame.setBaitPrices(...)
- * - FishingGame.setVRFConfig(...) [placeholder for testnet]
+ * - zoneValidator.setFishingGame(FishingGame)
+ * - fishBait.setFishingGame(FishingGame)
+ * - fishNFT.setFishingGame(FishingGame)
+ * - fishNFT.setUpgradeContract(FishUpgrade)
+ * - fishingGame.setSupraVRFConfig(...) [requires Supra Router address]
+ * - fishUpgrade.setSupraVRFConfig(...) [requires Supra Router address]
  */
 contract DeployFishIt is Script {
     // Deployment addresses
@@ -40,12 +46,11 @@ contract DeployFishIt is Script {
     address public admin; // multisig / deployer for testing
     address public revenueRecipient; // treasury / deployer for testing
 
-    // Bait prices (in wei, adjust for testnet)
-    // Mainnet: 0.05 MNT, 0.15 MNT, 0.50 MNT
-    // Testnet: use smaller values for testing (e.g., 0.001, 0.003, 0.01 ETH equivalent)
-    uint256 public constant COMMON_BAIT_PRICE = 0.05 ether; // 0.05 MNT
-    uint256 public constant RARE_BAIT_PRICE = 0.15 ether;   // 0.15 MNT
-    uint256 public constant EPIC_BAIT_PRICE = 0.50 ether;   // 0.50 MNT
+    // Bait prices are hardcoded in FishBait.sol contract:
+    // - Common: 1 MNT (1 ether)
+    // - Rare: 2 MNT (2 ether)
+    // - Epic: 4 MNT (4 ether)
+    // No need to set prices here, they're set in the contract
 
     // Supra VRF Config (for Mantle Network)
     // Get actual router address from Supra documentation for Mantle

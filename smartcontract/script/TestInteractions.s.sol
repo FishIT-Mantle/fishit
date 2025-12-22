@@ -7,6 +7,9 @@ import {FishItStaking} from "../src/FishItStaking.sol";
 import {FishNFT} from "../src/FishNFT.sol";
 import {FishingGame} from "../src/FishingGame.sol";
 import {FishMarketplace} from "../src/FishMarketplace.sol";
+import {ZoneValidator} from "../src/ZoneValidator.sol";
+import {FishBait} from "../src/FishBait.sol";
+import {FishUpgrade} from "../src/FishUpgrade.sol";
 
 /**
  * @title TestInteractions
@@ -18,6 +21,9 @@ import {FishMarketplace} from "../src/FishMarketplace.sol";
  *    export NFT_ADDRESS=0x...
  *    export GAME_ADDRESS=0x...
  *    export MARKETPLACE_ADDRESS=0x...
+ *    export ZONE_VALIDATOR_ADDRESS=0x...  (optional)
+ *    export FISH_BAIT_ADDRESS=0x...       (optional)
+ *    export FISH_UPGRADE_ADDRESS=0x...    (optional)
  *
  * 2. Run: forge script script/TestInteractions.s.sol:TestInteractions --rpc-url <RPC> --broadcast
  */
@@ -26,6 +32,9 @@ contract TestInteractions is Script {
     FishNFT public fishNFT;
     FishingGame public fishingGame;
     FishMarketplace public marketplace;
+    ZoneValidator public zoneValidator;
+    FishBait public fishBait;
+    FishUpgrade public fishUpgrade;
 
     function setUp() public {
         // Load deployed addresses from environment
@@ -38,6 +47,25 @@ contract TestInteractions is Script {
         fishNFT = FishNFT(nftAddr);
         fishingGame = FishingGame(gameAddr);
         marketplace = FishMarketplace(marketplaceAddr);
+
+        // Optional addresses (if set)
+        try vm.envAddress("ZONE_VALIDATOR_ADDRESS") returns (address zoneValidatorAddr) {
+            if (zoneValidatorAddr != address(0)) {
+                zoneValidator = ZoneValidator(zoneValidatorAddr);
+            }
+        } catch {}
+
+        try vm.envAddress("FISH_BAIT_ADDRESS") returns (address fishBaitAddr) {
+            if (fishBaitAddr != address(0)) {
+                fishBait = FishBait(fishBaitAddr);
+            }
+        } catch {}
+
+        try vm.envAddress("FISH_UPGRADE_ADDRESS") returns (address fishUpgradeAddr) {
+            if (fishUpgradeAddr != address(0)) {
+                fishUpgrade = FishUpgrade(fishUpgradeAddr);
+            }
+        } catch {}
     }
 
     function run() public {
@@ -59,21 +87,55 @@ contract TestInteractions is Script {
         console2.log("   Total staked:", staking.totalStaked());
         console2.log("   License tier:", staking.getLicenseTier(user));
 
-        // Test 3: Check bait prices (now in FishBait contract)
-        console2.log("\n3. Checking bait prices...");
-        console2.log("   Common bait: 1 MNT (from FishBait contract)");
-        console2.log("   Rare bait: 2 MNT (from FishBait contract)");
-        console2.log("   Epic bait: 4 MNT (from FishBait contract)");
-
-        // Test 4: Cast line (if VRF configured)
-        // Note: Energy system removed - fishing now requires bait purchase
-        if (address(fishingGame.supraRouter()) != address(0)) {
-            console2.log("\n4. Testing cast line (requires bait purchase first)...");
-            console2.log("   Bait price: Purchase from FishBait contract first");
-            console2.log("   NOTE: Cast line requires bait purchase from FishBait contract first");
-            console2.log("   NOTE: Also requires zone selection and validation");
+        // Test 2: Check bait prices (from FishBait contract)
+        console2.log("\n2. Checking bait prices...");
+        if (address(fishBait) != address(0)) {
+            uint256 commonPrice = fishBait.getBaitPrice(FishBait.BaitType.Common);
+            uint256 rarePrice = fishBait.getBaitPrice(FishBait.BaitType.Rare);
+            uint256 epicPrice = fishBait.getBaitPrice(FishBait.BaitType.Epic);
+            console2.log("   Common bait:", commonPrice, "wei (1 MNT)");
+            console2.log("   Rare bait:", rarePrice, "wei (2 MNT)");
+            console2.log("   Epic bait:", epicPrice, "wei (4 MNT)");
         } else {
-            console2.log("\n4. Skipping cast line (VRF not configured)");
+            console2.log("   Common bait: 1 MNT (hardcoded in FishBait contract)");
+            console2.log("   Rare bait: 2 MNT (hardcoded in FishBait contract)");
+            console2.log("   Epic bait: 4 MNT (hardcoded in FishBait contract)");
+            console2.log("   Note: FISH_BAIT_ADDRESS not set, using default values");
+        }
+
+        // Test 3: Check zone requirements (if ZoneValidator address is set)
+        if (address(zoneValidator) != address(0)) {
+            console2.log("\n3. Checking zone requirements...");
+            uint256 zone1EntryFee = zoneValidator.getEntryFee(ZoneValidator.Zone.Shallow);
+            uint256 zone3EntryFee = zoneValidator.getEntryFee(ZoneValidator.Zone.DeepSea);
+            uint256 zone4EntryFee = zoneValidator.getEntryFee(ZoneValidator.Zone.Abyssal);
+            console2.log("   Zone 1 (Shallow) entry fee:", zone1EntryFee, "wei");
+            console2.log("   Zone 3 (DeepSea) entry fee:", zone3EntryFee, "wei (1 MNT)");
+            console2.log("   Zone 4 (Abyssal) entry fee:", zone4EntryFee, "wei (3 MNT)");
+        }
+
+        // Test 4: Purchase bait (if FishBait address is set)
+        if (address(fishBait) != address(0)) {
+            console2.log("\n4. Testing bait purchase...");
+            console2.log("   NOTE: User needs to call fishBait.purchaseBait() with MNT value");
+            console2.log("   Example: fishBait.purchaseBait(FishBait.BaitType.Common, 1){value: 1 ether}()");
+        }
+
+        // Test 5: Cast line (if VRF configured)
+        // Note: Energy system removed - fishing now requires:
+        // - Bait purchase from FishBait contract
+        // - Zone access validation (license, burn requirements, entry fee)
+        if (address(fishingGame.supraRouter()) != address(0)) {
+            console2.log("\n5. Testing cast line...");
+            console2.log("   Requirements:");
+            console2.log("     - Bait: Purchase from FishBait contract first");
+            console2.log("     - License: Stake MNT (Zone 1: none, Zone 2: 100 MNT, Zone 3: 250 MNT, Zone 4: 500 MNT)");
+            console2.log("     - Burn: Zone 2 (3 Common), Zone 3 (2 Rare), Zone 4 (1 Epic)");
+            console2.log("     - Entry fee: Zone 3 (1 MNT), Zone 4 (3 MNT)");
+            console2.log("     - Approval: fishNFT.setApprovalForAll(fishingGame, true) for burn");
+            console2.log("   Example: fishingGame.castLine(ZoneValidator.Zone.Shallow, FishingGame.BaitType.Common){value: 0}()");
+        } else {
+            console2.log("\n5. Skipping cast line (VRF not configured)");
         }
 
         // Test 6: Check NFT collection (if any minted)
@@ -86,17 +148,26 @@ contract TestInteractions is Script {
             uint256 firstTokenId = 1;
             address owner = fishNFT.ownerOf(firstTokenId);
             FishNFT.Rarity rarity = fishNFT.rarityOf(firstTokenId);
-            // boostBpsOf removed in new system (no yield)
             FishNFT.Tier tier = fishNFT.tierOf(firstTokenId);
+            bool isBurned = fishNFT.isBurned(firstTokenId);
             console2.log("   Token", firstTokenId, "owner:", owner);
             console2.log("   Rarity:", uint256(rarity));
-            console2.log("   Tier:", uint256(tier));
+            console2.log("   Tier:", uint256(tier), "(0=Junk, 1=Common, 2=Rare, 3=Epic, 4=Legendary)");
+            console2.log("   Is burned:", isBurned);
         }
 
-        // Test 5: Marketplace info
-        console2.log("\n5. Checking marketplace...");
+        // Test 7: Marketplace info
+        console2.log("\n7. Checking marketplace...");
         console2.log("   Marketplace fee (bps):", marketplace.FEE_BPS());
-        console2.log("   NOTE: All fees go to revenue (no reward pool in controlled economy)");
+        console2.log("   NOTE: All fees go to revenue recipient (no reward pool in controlled economy)");
+
+        // Test 8: Upgrade system (if FishUpgrade address is set)
+        if (address(fishUpgrade) != address(0)) {
+            console2.log("\n8. Checking upgrade system...");
+            console2.log("   Common to Rare: Burn 5 Common, 100% success");
+            console2.log("   Rare to Epic: Burn 3 Rare, 40% success (VRF), 60% destroy");
+            console2.log("   NOTE: User needs to approve: fishNFT.setApprovalForAll(fishUpgrade, true)");
+        }
 
         console2.log("\n=== Test Summary ===");
         console2.log("Basic interactions tested");
