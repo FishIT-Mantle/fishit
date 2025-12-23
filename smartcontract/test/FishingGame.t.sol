@@ -131,7 +131,7 @@ contract FishingGameTest is Test {
 
     function test_CastLine_Zone1_Works() public {
         vm.deal(user1, 10 ether);
-        
+
         // Purchase bait
         vm.prank(user1);
         fishBait.purchaseBait{value: 1 ether}(FishBait.BaitType.Common, 1);

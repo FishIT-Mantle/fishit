@@ -190,7 +190,7 @@ contract FishingGame {
         if (!canAccess) {
             emit ZoneAccessDenied(user, zone, reason);
             revert(reason);
-        }
+    }
 
         // 2. Check Epic Bait only requirement for Zone 4
         if (zone == ZoneValidator.Zone.Abyssal && baitType != BaitType.Epic) {
@@ -217,7 +217,7 @@ contract FishingGame {
             // Refund if user sent value but no entry fee required
             if (msg.value > 0) {
                 (bool refundOk, ) = user.call{value: msg.value}("");
-                require(refundOk, "Refund failed");
+            require(refundOk, "Refund failed");
             }
         }
 

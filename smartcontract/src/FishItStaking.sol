@@ -179,7 +179,7 @@ contract FishItStaking {
      */
     function getUnstakeRequest(address user) external view returns (uint256 amount, uint256 availableAt) {
         return (unstakeRequestAmount[user], unstakeAvailableAt[user]);
-    }
+        }
 
 }
 
