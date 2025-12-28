@@ -202,12 +202,10 @@ contract FishUpgrade {
      * @notice VRF callback for Rare → Epic upgrade
      * @param _requestId The request ID from Supra VRF
      * @param _rngList Array of random numbers (we use the first one)
-     * @param _clientSeed The client seed that was sent with the request
      */
     function upgradeVRFCallback(
         uint256 _requestId,
-        uint256[] memory _rngList,
-        uint256 _clientSeed
+        uint256[] memory _rngList
     ) external onlySupraRouter {
         UpgradeRequest memory req = upgradeRequests[_requestId];
         require(req.user != address(0), "Unknown request");

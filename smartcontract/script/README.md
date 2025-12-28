@@ -298,4 +298,3 @@ Pastikan user sudah stake cukup MNT:
 ### NFT URI Not Set
 
 Backend harus listen ke event `FishCaught` dan call `setTokenURI` setelah AI generation selesai.
-

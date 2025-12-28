@@ -82,3 +82,10 @@ forge script script/TestInteractions.s.sol:TestInteractions \
 - `script/TestInteractions.s.sol` - Test interaksi dengan kontrak yang sudah di-deploy
 - `script/MockVRFHelper.s.sol` - Helper untuk testing lokal dengan mock VRF
 - `script/setup.sh` - Setup script untuk install dependencies
+
+forge verify-contract \
+  0x3102Da49cDB6C8676928aDb460F83e5Ba764ed2e \
+  src/FishItStaking.sol:FishItStaking \
+  --chain-id 5003 \
+  --constructor-args 000000000000000000000000b1efd5af919190251762024e13356406eedf151d \
+  --etherscan-api-key $ETHERSCAN_API_KEY

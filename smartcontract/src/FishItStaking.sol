@@ -91,11 +91,9 @@ contract FishItStaking {
     function stake() external payable {
         require(msg.value > 0, "Zero amount");
 
-        uint256 oldStake = stakes[msg.sender];
         stakes[msg.sender] += msg.value;
         totalStaked += msg.value;
 
-        uint8 oldTier = _getLicenseTier(oldStake);
         uint8 newTier = _getLicenseTier(stakes[msg.sender]);
 
         emit Staked(msg.sender, msg.value, newTier);
