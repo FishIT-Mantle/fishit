@@ -1,66 +1,91 @@
-## Foundry
+## FishIt Smart Contracts
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+Smart contracts untuk FishIt GameFi protocol di Mantle Network.
 
-Foundry consists of:
+### Contracts
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+- **FishItStaking**: Core staking pool untuk native MNT
+- **FishNFT**: ERC-721 NFT untuk ikan yang ditangkap
+- **FishingGame**: Gameplay logic dengan Chainlink VRF
+- **FishMarketplace**: Marketplace untuk trading NFT ikan
 
-## Documentation
+## Setup
 
-https://book.getfoundry.sh/
+### Install Dependencies
+
+```bash
+# Run setup script
+./script/setup.sh
+
+# Atau manual:
+forge install OpenZeppelin/openzeppelin-contracts
+```
+
+### Environment Variables
+
+Buat file `.env`:
+
+```bash
+PRIVATE_KEY=your_private_key
+RPC_URL=https://rpc.testnet.mantle.xyz
+```
 
 ## Usage
 
 ### Build
 
-```shell
-$ forge build
+```bash
+forge build
 ```
 
 ### Test
 
-```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
+```bash
+forge test
 ```
 
 ### Deploy
 
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+```bash
+# Deploy semua kontrak
+forge script script/DeployFishIt.s.sol:DeployFishIt \
+  --rpc-url $RPC_URL \
+  --broadcast \
+  -vvvv
 ```
 
-### Cast
+### Test Interactions
 
-```shell
-$ cast <subcommand>
+```bash
+# Set deployed addresses
+export STAKING_ADDRESS=0x...
+export NFT_ADDRESS=0x...
+export GAME_ADDRESS=0x...
+export MARKETPLACE_ADDRESS=0x...
+
+# Run test script
+forge script script/TestInteractions.s.sol:TestInteractions \
+  --rpc-url $RPC_URL \
+  --broadcast \
+  -vvvv
 ```
 
-### Help
+## Documentation
 
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+- **Deployment Scripts**: Lihat `script/README.md` untuk detail deployment dan testing
+- **Foundry Docs**: https://book.getfoundry.sh/
+- **PRD**: Lihat `../prd.md` untuk product requirements
+
+## Scripts
+
+- `script/DeployFishIt.s.sol` - Deploy semua kontrak dengan wiring otomatis
+- `script/TestInteractions.s.sol` - Test interaksi dengan kontrak yang sudah di-deploy
+- `script/MockVRFHelper.s.sol` - Helper untuk testing lokal dengan mock VRF
+- `script/setup.sh` - Setup script untuk install dependencies
+
+forge verify-contract \
+  0x3102Da49cDB6C8676928aDb460F83e5Ba764ed2e \
+  src/FishItStaking.sol:FishItStaking \
+  --chain-id 5003 \
+  --constructor-args 000000000000000000000000b1efd5af919190251762024e13356406eedf151d \
+  --etherscan-api-key $ETHERSCAN_API_KEY
