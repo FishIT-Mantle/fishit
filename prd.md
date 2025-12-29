@@ -1,349 +1,254 @@
-# PRODUCT REQUIREMENT DOCUMENT  
-## FishIt  
-### GameFi Layer untuk Ekosistem Mantle Yield  
+# FISHIT – PRODUCT REQUIREMENT DOCUMENT (FINAL)
 
-**Versi:** 2.0  
-**Tanggal:** 20 November 2025  
-**Owner:** Tim Produk (Wildan)  
-**Status:** Brainstorming & Draft  
+**Web3 Fishing Game with Controlled Economy**
 
----
-
-## DAFTAR ISI
-1. Ringkasan Eksekutif  
-2. Masalah yang Mau Diselesaikan  
-3. Konsep & Cara Kerja  
-4. Siapa yang Mau Kita Target  
-5. Fitur-Fitur Detail  
-6. Teknologi & Arsitektur  
-7. Model Bisnis  
-8. Roadmap Pengembangan  
-9. Risiko & Mitigasi  
-10. Next Steps  
+- **Version:** MVP-1.0
+- **Author:** FishIt Team
+- **Status:** Final – Ready for Development
 
 ---
 
-## 1. RINGKASAN EKSEKUTIF
+## 1. TUJUAN PRODUK
 
-### 1.1 Apa itu FishIt?
-FishIt adalah platform yang mengubah aktivitas staking MNT di Mantle Network menjadi pengalaman bermain game memancing yang seru. Daripada hanya deposit token dan menunggu yield, user bisa aktif bermain, menangkap ikan NFT yang unik, dan ikan tersebut dapat meningkatkan pendapatan staking.
+FishIt adalah game memancing berbasis Web3 di mana:
 
-Alur inti:  
-**Stake MNT → Dapat Energy → Mancing → Tangkap Ikan NFT (AI-generated) → Boost Yield → Dapat Reward**
+- Pemain **membayar attempt (bait)**.
+- Hasil didapat lewat **RNG**.
+- Tidak ada janji profit.
+- Ekonomi dijaga lewat **sink, cost, dan pacing**.
 
-Yield berasal dari protokol Mantle (real yield), bukan token inflasi.
+Game ini **bukan Play-to-Earn**, melainkan:
 
-### 1.2 Kenapa FishIt Menarik?
-
-**Buat Stakers DeFi**
-- Staking tidak membosankan
-- Tetap dapat real yield Mantle + bonus NFT
-- Tidak ada lock period
-
-**Buat Gamers**
-- Gameplay simpel
-- NFT ikan unik (AI-generated)
-- Earn crypto nyata
-
-**Buat Kolektor NFT**
-- NFT punya utilitas (boost yield)
-- Setiap NFT unik
-- Bisa dijual di marketplace
-
-### 1.3 Alur Game Utama
-**STAKE MNT → DAPAT ENERGY → MANCING → TANGKAP IKAN NFT → BOOST YIELD → CLAIM REWARD**
+- **Play-for-fun** dengan ekonomi tertutup dan terkontrol.
 
 ---
 
-## 2. MASALAH YANG MAU DISELESAIKAN
+## 2. PRINSIP DESAIN (INVARIANT – TIDAK BOLEH DILANGGAR)
 
-### 2.1 Problem di DeFi Sekarang
-
-**Staking itu Boring**  
-Hanya deposit dan menunggu, tanpa engagement.
-
-**GameFi Tidak Sustainable**  
-Bergantung pada token inflasi, berujung pada penurunan nilai.
-
-**NFT Tanpa Utility**  
-Mayoritas hanya gambar tanpa fungsi nyata.
-
-**User Baru Bingung**  
-DeFi kompleks dan barrier to entry tinggi.
-
-### 2.2 Kenapa Sekarang Waktu yang Tepat?
-- Mantle punya real yield yang solid
-- AI generation makin murah dan cepat
-- Market lelah dengan Ponzi GameFi
-- Gas fee Mantle rendah
-- Ekosistem Mantle sedang berkembang
+- Semua fishing attempt **selalu membutuhkan bait**.
+- Tidak ada reward pasif / yield.
+- Semua zona memiliki **negative EV**.
+- Zona lebih tinggi = **biaya & risiko lebih tinggi**.
+- Staking **tidak meningkatkan drop rate**.
+- Legendary **tidak di-upgrade & tidak di-burn** (MVP).
 
 ---
 
-## 3. KONSEP & CARA KERJA
+## 3. RESOURCE UTAMA
 
-### 3.1 Konsep Dasar
-FishIt adalah layer gamifikasi di atas staking Mantle. User tetap stake MNT dan mendapat yield dasar, dengan bonus dari gameplay memancing.
+### 3.1 Token
 
-### 3.2 Komponen Utama
+**MNT (Mantle)**
+Digunakan untuk:
 
-#### Staking Pool
-- Deposit MNT ke smart contract
-- Dana masuk vault yield Mantle
-- Tidak ada lock period
+- Membeli bait.
+- Zone entry fee.
+- Staking (license).
+- _Note: Tidak ada mint reward token._
 
-#### Fishing Energy System
-Energy = √(jumlah MNT distake)
+### 3.2 Fish Tier (FINAL)
 
-Contoh:
-- 1 MNT → 1 energy/hari  
-- 4 MNT → 2 energy/hari  
-- 100 MNT → 10 energy/hari  
-- 10,000 MNT → 100 energy/hari  
+| Tier          | Fungsi                         |
+| :------------ | :----------------------------- |
+| **Common**    | Fuel / burn                    |
+| **Rare**      | Progress / akses               |
+| **Epic**      | Endgame / high risk            |
+| **Legendary** | Prestige / flex (MVP: no sink) |
 
-Energy regenerate setiap 24 jam.
+### 3.3 Bait (FINAL – 3 JENIS)
 
-#### Fishing Gameplay
-1. Pilih Umpan (Common / Rare / Epic)
-2. Lempar Pancing (Cast Line + mini-game)
-3. Tangkap Ikan (Chainlink VRF)
+| Bait            | Harga | Fungsi                            |
+| :-------------- | :---- | :-------------------------------- |
+| **Common Bait** | 1 MNT | Baseline, junk tinggi             |
+| **Rare Bait**   | 2 MNT | Lebih efisien (junk lebih rendah) |
+| **Epic Bait**   | 4 MNT | High volatility, thrill           |
 
-#### AI-Generated NFT Fish
-NFT di-generate berdasarkan:
-- Rarity
-- Random seed
-- Traits (species, warna, pattern, accessories)
+**Catatan penting:**
+Perbedaan bait **bukan sekadar tier naik**, tapi:
 
-Metadata on-chain (ERC-721), gambar di IPFS.
-
-#### Yield Boost System
-
-| Rarity      | Boost Yield |
-|------------|-------------|
-| Common     | +0%         |
-| Rare       | +1%         |
-| Epic       | +3%         |
-| Legendary  | +5%         |
-
-Effective APY = Base APY × (1 + boost)
-
-Sumber bonus yield:
-- Fee umpan
-- Fee marketplace
-- Revenue fitur premium
+- **Common:** Murah & grind.
+- **Rare:** Kurangi rasa capek.
+- **Epic:** Risiko & excitement.
 
 ---
 
-## 4. SIAPA YANG MAU KITA TARGET
+## 4. STAKING (LICENSE SYSTEM)
 
-### 4.1 DeFi Users yang Bosen
-- Cari engagement
-- Cari protokol sustainable
-- Tetap fleksibel
+Staking bersifat **threshold-based**, bukan linear.
 
-### 4.2 Casual Gamers
-- Gameplay simpel
-- Bisa earning
-- Entry cost rendah (mulai 1 MNT)
+| Stake MNT | License     | Akses  |
+| :-------- | :---------- | :----- |
+| < 100     | None        | Zona 1 |
+| ≥ 100     | License I   | Zona 2 |
+| ≥ 250     | License II  | Zona 3 |
+| ≥ 500     | License III | Zona 4 |
 
-### 4.3 NFT Collectors & Traders
-- NFT unik
-- Ada utility
-- Marketplace aktif
+**Aturan tambahan:**
 
----
-
-## 5. FITUR-FITUR DETAIL
-
-### 5.1 Staking
-- Minimum: 1 MNT
-- Maximum: Tidak ada
-- Lock period: 0
-- Fee: Tidak ada
-
-### 5.2 Sistem Umpan (Bait)
-
-| Tipe | Biaya | Common | Rare | Epic | Legendary |
-|-----|-------|--------|------|------|-----------|
-| Common | 0.05 MNT | 70% | 25% | 4.5% | 0.5% |
-| Rare | 0.15 MNT | 50% | 35% | 13% | 2% |
-| Epic | 0.50 MNT | 30% | 40% | 25% | 5% |
-
-### 5.3 Proses Mancing
-
-**Step 1: User Action**
-- Pilih bait
-- Klik Cast Line
-- Energy berkurang 1
-
-**Step 2: On-Chain**
-- Request Chainlink VRF
-- Mint NFT placeholder
-- Emit event FishCaught
-
-**Step 3: Backend**
-- Generate AI image
-- Upload ke IPFS
-- Set tokenURI
-
-**Step 4: User**
-- NFT masuk wallet
-- Bisa activate boost atau jual
-
-### 5.4 NFT Gallery & Management
-- View collection
-- Detail NFT
-- Activate/deactivate boost
-- List for sale (fee 2.5%)
-
-### 5.5 Marketplace
-- Browse & filter
-- Instant buy
-- Cancel listing
-- Fee 2.5% (50% reward pool, 50% revenue)
-
-### 5.6 Claim Yield & Unstake
-- Claim yield tanpa unstake
-- Unstake = principal + yield
-- Energy reset saat unstake
+- Unstake cooldown: **3 hari**.
+- Tidak memengaruhi drop rate.
+- Tidak memberi reward.
 
 ---
 
-## 6. TEKNOLOGI & ARSITEKTUR
+## 5. ZONA (FINAL – 4 ZONA)
 
-### 6.1 Tech Stack
+### ZONA 1 – SHALLOW WATERS (ONBOARDING)
 
-| Komponen | Teknologi |
-|--------|-----------|
-| Blockchain | Mantle Network |
-| Smart Contract | Solidity, OpenZeppelin, UUPS |
-| Randomness | Chainlink VRF |
-| Backend | Node.js, Express, PostgreSQL, Redis |
-| AI | Gemini 1.5 Flash |
-| Storage | IPFS (Pinata) |
-| Frontend | Next.js 14, viem, RainbowKit, Tailwind |
+- **Tujuan:** Entry point, Source Common, Bot sink awal.
+- **Syarat:**
+  - 1 bait (apa pun).
+  - Tidak perlu stake.
 
-### 6.2 Smart Contract Design
-- FishItStaking
-- FishNFT (ERC-721)
-- FishingGame
-- Marketplace
+**Drop Table:**
 
-Security:
-- Reentrancy guard
-- Access control
-- UUPS proxy
-- Emergency pause
-- Audit wajib
+- **Common Bait:** Junk: 40% | Common: 45% | Rare: 14% | Epic: 1% | Legendary: 0%
+- **Rare Bait:** Junk: 30% | Common: 45% | Rare: 22% | Epic: 3% | Legendary: 0%
+- **Epic Bait:** Junk: 20% | Common: 40% | Rare: 30% | Epic: 9% | Legendary: 1%
 
-### 6.3 Backend Services
-- Event listener
-- AI generator
-- IPFS manager
-- Operator wallet
-- API & WebSocket
+### ZONA 2 – REEF ZONE (MID GAME)
 
-### 6.4 Frontend
-- Wallet connection
-- Real-time dashboard
-- NFT gallery
-- Marketplace
-- Mobile responsive (desktop-first)
+- **Tujuan:** Burn Common, Progress terasa.
+- **Syarat:**
+  - 1 bait.
+  - Burn **3 Common**.
+  - Stake ≥100 MNT.
 
----
+**Drop Table:**
 
-## 7. MODEL BISNIS
+- **Common Bait:** Junk: 30% | Common: 30% | Rare: 28% | Epic: 10% | Legendary: 2%
+- **Rare Bait:** Junk: 20% | Common: 30% | Rare: 35% | Epic: 12% | Legendary: 3%
+- **Epic Bait:** Junk: 15% | Common: 25% | Rare: 35% | Epic: 20% | Legendary: 5%
 
-### 7.1 Revenue Streams
-1. Bait fees (80% reward pool, 20% revenue)
-2. Marketplace fees (2.5%)
-3. Future premium features
+### ZONA 3 – DEEP SEA (HIGH RISK)
 
-### 7.2 Sustainability Reward Pool
-Sumber:
-- 80% bait fees
-- 50% marketplace fees
-- 100% premium features
+- **Tujuan:** Sink Rare, Whale pressure.
+- **Syarat:**
+  - 1 bait.
+  - Burn **2 Rare**.
+  - Stake ≥250 MNT.
+  - Entry fee: **1 MNT**.
 
-Target buffer: ≥30 hari payout
+**Drop Table (SEMUA BAIT):**
 
-### 7.3 Margin & Profitability
-Estimasi cost: $1,200–2,600 / bulan  
-Break-even dengan ±3,000 active users
+- Junk: 20%
+- Common: 15%
+- Rare: 30%
+- Epic: 25%
+- Legendary: 10%
 
----
+### ZONA 4 – ABYSSAL TRENCH (PRESTIGE)
 
-## 8. ROADMAP PENGEMBANGAN
+- **Tujuan:** Legendary source, Endgame prestige.
+- **Syarat:**
+  - 1 bait (**Epic Bait ONLY**).
+  - Burn **1 Epic**.
+  - Stake ≥500 MNT.
+  - Entry fee: **3 MNT**.
+  - Cooldown: **1x / 24 jam**.
 
-### Phase 0 (2 minggu)
-- Finalisasi PRD
-- UI/UX design
-- Setup repo
+**Drop Table:**
 
-### Phase 1 (8 minggu)
-- Core infrastructure
-- Fishing & NFT
-- Internal alpha
-
-### Phase 2 (6 minggu)
-- Yield system
-- Marketplace
-- Closed beta
-
-### Phase 3 (4 minggu)
-- Audit
-- Mainnet deploy
-- Marketing prep
-
-### Phase 4 (3 bulan)
-- Iteration
-- Mobile optimization
-- Community
-
-### Phase 5 (6+ bulan)
-- Breeding
-- Seasonal events
-- Tournament
-- Governance token
-- Cross-chain
+- Junk: 15%
+- Rare: 20%
+- Epic: 40%
+- Legendary: 25%
+- _(Legendary hanya drop di zona ini)_
 
 ---
 
-## 9. RISIKO & MITIGASI
+## 6. UPGRADE SYSTEM
 
-### 9.1 Teknis
-- Smart contract bug → Audit & bug bounty
-- RNG abuse → Chainlink VRF
-- AI/IPFS downtime → Fallback & retry
+**Common → Rare**
 
-### 9.2 Ekonomi
-- Reward pool habis → Buffer & dynamic adjust
-- Whale dominance → Energy sqrt formula
+- Burn 5 Common.
+- 100% success.
 
-### 9.3 Pasar
-- Low adoption → Marketing & partnership
-- Competitor → First mover & UX
+**Rare → Epic**
 
----
+- Burn 3 Rare.
+- 40% success.
+- 60% destroy.
 
-## 10. NEXT STEPS
-
-**Immediate (1–2 minggu)**
-- Review PRD
-- UI/UX design sprint
-- Kick-off Phase 1
-
-**Short-term (1–3 bulan)**
-- MVP development
-- Internal testing
-- Mantle partnership
-
-**Mid-term (4–6 bulan)**
-- Audit
-- Closed beta
-- Mainnet launch
+❌ **Epic → Legendary DITIADAKAN (MVP)**
 
 ---
 
-**Penutup**  
-PRD ini adalah living document dan dapat diperbarui seiring progress development.
+## 7. PEMISAHAN TUGAS TEKNIS (WAJIB JELAS)
+
+### 7.1 SMART CONTRACT (ON-CHAIN)
+
+SC Bertanggung Jawab atas:
+
+- **Staking Contract:** Stake / unstake, cooldown, license tier.
+- **Bait Contract:** Purchase bait, consume bait.
+- **Fish NFT (ERC-721):** Mint, burn, transfer.
+- **Zone Validator:** Cek stake tier, cek burn requirement, enforce fee & cooldown.
+- **RNG:** Chainlink VRF, hasil final on-chain.
+
+**SC TIDAK:**
+
+- Generate image.
+- Store metadata.
+- Balance ekonomi.
+
+### 7.2 BACKEND (OFF-CHAIN)
+
+Backend WAJIB handle:
+
+- **Game Configuration:** Drop table, bait modifier, zone rule.
+- **AI Image Generation:** Generate fish image berdasarkan tier, prompt berbeda per tier, style konsisten.
+- **IPFS Integration:** Upload image, pin image, upload metadata JSON.
+- **Metadata Builder:** Name, tier, zone, seed, image CID.
+- **Event Listener:** Listen `FishMintRequested`, finalize mint setelah metadata siap.
+- **Analytics:** Mint vs burn, distribution tier, whale behavior.
+
+### 7.3 FRONTEND (FE)
+
+FE Bertanggung Jawab atas:
+
+- Wallet connect (Mantle).
+- **Inventory:** Bait, fish per tier.
+- **Fishing UI:** Animation, suspense delay.
+- **UI Components:** Zone selection UI, Upgrade UI, Risk & odds display.
+- Transaction state handling.
+
+---
+
+## 8. AI & IPFS FLOW (DETAIL)
+
+1.  User fishing → SC mint request.
+2.  SC emit event.
+3.  BE: Generate image via AI.
+4.  BE: Upload image → IPFS.
+5.  BE: Generate metadata → IPFS.
+6.  BE call SC → `finalizeMint(tokenId, uri)`.
+
+---
+
+## 9. EKONOMI CHECK (SANITY)
+
+- Semua zona EV negatif.
+- Legendary supply dikontrol lewat: Zona terbatas, cooldown, biaya tinggi.
+- Whale tidak punya loop aman.
+
+---
+
+## 10. YANG DITUNDA (SENGAJA)
+
+- Legendary sink.
+- Seasonal system.
+- Cosmetic layer.
+- Advanced marketplace.
+
+---
+
+## 11. PENUTUP
+
+PRD ini:
+
+- Tidak mengurangi spek game.
+- Tidak menambah konsep baru.
+- Ekonomi serius.
+- Teknis jelas.
+- **Siap langsung dikerjakan tim.**
