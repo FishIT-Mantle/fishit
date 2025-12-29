@@ -88,6 +88,11 @@ export default function Dashboard() {
                         <button className="px-8 py-2.5 rounded-full text-sm font-medium text-white hover:text-white/80 transition-all hover:bg-white/5">
                             Marketplace
                         </button>
+
+                        {/* Aquarium Button - NEW */}
+                        <button className="px-8 py-2.5 rounded-full text-sm font-medium text-white hover:text-white/80 transition-all hover:bg-white/5">
+                            Aquarium
+                        </button>
                     </div>
 
                     {/* Right Group: Wallet Only */}
@@ -185,102 +190,108 @@ export default function Dashboard() {
                 </nav>
 
                 {/* Welcome Section */}
-                <header className="mb-8">
-                    <h1 className="text-3xl md:text-4xl font-normal text-white mb-2 drop-shadow-lg">
+                <header className="mb-6">
+                    <h1 className="text-3xl md:text-4xl font-normal text-white mb-2 drop-shadow-lg flex items-center gap-3">
                         Welcome to Fish It
+                        <span className="text-2xl animate-bounce">🐟</span>
                     </h1>
-                    <p className="text-white/50 text-base md:text-lg max-w-2xl mb-6">
-                        Stake MNT, catch unique AI-generated fish NFTs, and boost your real yield.
+                    <p className="text-white/50 text-base md:text-lg max-w-6xl">
+                        Enter a controlled Web3 fishing economy. Stake for access, manage your resources, and hunt for rare AI NFTs in high-risk zones.
                     </p>
-
-                    {/* Stake MNT Banner */}
-                    <div className="relative overflow-hidden rounded-3xl px-8 py-5 bg-[#4157E2] border border-white/20 shadow-[0_8px_40px_rgba(65,87,226,0.6)]">
-                        <div className="relative z-10 flex items-center justify-between gap-6">
-                            <div className="flex-1">
-                                <h2 className="text-xl md:text-2xl font-bold text-white mb-1">
-                                    Stake MNT to Start Fishing!
-                                </h2>
-                                <p className="text-white/80 text-sm">
-                                    Earn energy every day and catch unique fish NFTs with real yield boosts.
-                                </p>
-                            </div>
-                            <button className="flex-shrink-0 px-8 py-3 bg-white text-[#4157E2] font-semibold text-sm rounded-full hover:bg-white/95 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_4px_12px_rgba(255,255,255,0.3)]">
-                                Stake Now
-                            </button>
-                        </div>
-
-                        {/* Decorative fish icons */}
-                        <div className="absolute right-28 top-1/2 -translate-y-1/2 opacity-25">
-                            <span className="text-3xl">🐠</span>
-                        </div>
-                        <div className="absolute right-16 top-1/2 -translate-y-1/2 opacity-20">
-                            <span className="text-2xl">🐟</span>
-                        </div>
-                        <div className="absolute right-6 top-1/2 -translate-y-1/2 opacity-15">
-                            <span className="text-xl">🐟</span>
-                        </div>
-                    </div>
                 </header>
 
-                {/* Dashboard Grid */}
-                <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 pb-6">
+                {/* Main Dashboard Content */}
+                <main className="flex-1 flex flex-col gap-6 pb-6">
 
-                    {/* Left Column: Stats (30%) -> span 4/12 */}
-                    <aside className="lg:col-span-3 flex flex-col gap-4">
+                    {/* Stats Cards Grid - 2 Column Layout */}
+                    <div className="flex flex-col lg:flex-row gap-4">
 
-                        {/* Card: Energy */}
-                        <div className="relative h-[214px] overflow-hidden rounded-2xl p-6 backdrop-blur-xl bg-[radial-gradient(120%_120%_at_80%_20%,rgba(120,140,255,0.35)_0%,rgba(40,60,140,0.35)_45%,rgba(20,35,80,0.45)_100%)] border border-white/25 shadow-[0_8px_40px_rgba(0,0,0,0.25),0_0_25px_rgba(120,140,255,0.35)]">
-                            <div className="relative z-10">
-                                <div className="flex items-center gap-3 mb-4">
-
-                                    <Image src="/icons/energy-icon.webp" alt="Energy" width={48} height={48} className="w-12 h-12 object-contain" />
-
-                                    <span className="text-2xl font-medium text-white">Your Energy</span>
+                        {/* Left Column: My Bait Supply (Stretches to match right column height) */}
+                        <div className="relative overflow-hidden rounded-2xl p-6 backdrop-blur-xl bg-[radial-gradient(120%_120%_at_80%_20%,rgba(120,140,255,0.35)_0%,rgba(40,60,140,0.35)_45%,rgba(20,35,80,0.45)_100%)] border border-white/25 shadow-[0_8px_40px_rgba(0,0,0,0.25),0_0_25px_rgba(120,140,255,0.35)] lg:w-[280px] xl:w-[320px] flex-shrink-0 min-h-[200px]">
+                            <div className="relative z-10 h-full flex flex-col">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <Image src="/icons/collection-icon.webp" alt="Bait Supply" width={40} height={40} className="w-10 h-10 object-contain" />
+                                    <span className="text-lg font-medium text-white">My Bait Supply</span>
                                 </div>
-                                <div className="text-5xl font-semibold text-white tracking-tight mb-1">
-                                    25
+                                <div className="flex-1 flex items-center justify-center">
+                                    <p className="text-white/50 text-sm">(No bait available)</p>
                                 </div>
-                                <div className="text-sm text-gray-400">Energy</div>
                             </div>
                         </div>
 
-                        {/* Card: Collection */}
-                        <div className="relative h-[214px] overflow-hidden rounded-2xl p-6 backdrop-blur-xl bg-[radial-gradient(120%_120%_at_80%_20%,rgba(120,140,255,0.35)_0%,rgba(40,60,140,0.35)_45%,rgba(20,35,80,0.45)_100%)] border border-white/25 shadow-[0_8px_40px_rgba(0,0,0,0.25),0_0_25px_rgba(120,140,255,0.35)]">
-                            <div className="relative z-10">
-                                <div className="flex items-center gap-3 mb-4">
-
-                                    <Image src="/icons/collection-icon.webp" alt="Collection" width={48} height={48} className="w-12 h-12 object-contain" />
-
-                                    <span className="text-2xl font-medium text-white">Collection</span>
+                        {/* Right Column: 3 Cards + Staking Banner */}
+                        <div className="flex-1 flex flex-col gap-4">
+                            {/* 3 Cards Row */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                {/* Card: My License Status */}
+                                <div className="relative overflow-hidden rounded-2xl p-5 backdrop-blur-xl bg-[radial-gradient(120%_120%_at_80%_20%,rgba(120,140,255,0.35)_0%,rgba(40,60,140,0.35)_45%,rgba(20,35,80,0.45)_100%)] border border-white/25 shadow-[0_8px_40px_rgba(0,0,0,0.25),0_0_25px_rgba(120,140,255,0.35)]">
+                                    <div className="relative z-10">
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <Image src="/icons/energy-icon.webp" alt="License Status" width={40} height={40} className="w-10 h-10 object-contain" />
+                                            <span className="text-lg font-medium text-white">My License Status</span>
+                                        </div>
+                                        <p className="text-white/50 text-sm">(Status not available)</p>
+                                    </div>
                                 </div>
-                                <div className="text-5xl font-semibold text-white tracking-tight mb-1">
-                                    0
+
+                                {/* Card: My Fish Collection */}
+                                <div className="relative overflow-hidden rounded-2xl p-5 backdrop-blur-xl bg-[radial-gradient(120%_120%_at_80%_20%,rgba(120,140,255,0.35)_0%,rgba(40,60,140,0.35)_45%,rgba(20,35,80,0.45)_100%)] border border-white/25 shadow-[0_8px_40px_rgba(0,0,0,0.25),0_0_25px_rgba(120,140,255,0.35)]">
+                                    <div className="relative z-10">
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <Image src="/icons/fish-icon.webp" alt="Fish Collection" width={40} height={40} className="w-10 h-10 object-contain" />
+                                            <span className="text-lg font-medium text-white">My Fish Collection</span>
+                                        </div>
+                                        <p className="text-white/50 text-sm">(No fish available)</p>
+                                    </div>
                                 </div>
-                                <div className="text-sm text-gray-400">Fish Collection</div>
+
+                                {/* Card: MNT Token */}
+                                <div className="relative overflow-hidden rounded-2xl p-5 backdrop-blur-xl bg-[radial-gradient(120%_120%_at_80%_20%,rgba(120,140,255,0.35)_0%,rgba(40,60,140,0.35)_45%,rgba(20,35,80,0.45)_100%)] border border-white/25 shadow-[0_8px_40px_rgba(0,0,0,0.25),0_0_25px_rgba(120,140,255,0.35)]">
+                                    <div className="relative z-10">
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <Image src="/icons/token-icon.webp" alt="MNT Token" width={40} height={40} className="w-10 h-10 object-contain" />
+                                            <span className="text-lg font-medium text-white">MNT Token</span>
+                                        </div>
+                                        <p className="text-white/50 text-sm">(No token available)</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Staking Banner */}
+                            <div className="relative overflow-hidden rounded-2xl px-6 py-5 bg-[#4157E2] border border-[#7B83DB]/60 shadow-[0_4px_20px_rgba(91,99,203,0.4),inset_0_1px_0_rgba(255,255,255,0.1)]">
+                                <div className="relative z-10 flex items-center justify-between gap-6">
+                                    <div className="flex-1">
+                                        <h3 className="text-lg md:text-xl font-semibold text-white mb-1">
+                                            Unlock Deeper Zones & Better Catches!
+                                        </h3>
+                                        <p className="text-white/70 text-sm">
+                                            Stake MNT to access higher-tier zones, reduce junk rates, and catch rarer fish NFTs.
+                                        </p>
+                                    </div>
+
+                                    {/* Decorative fish icons */}
+                                    <div className="hidden md:flex items-center gap-2 mr-2">
+                                        <svg className="w-7 h-7 text-white/30" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M12 20c4.4 0 8-3.6 8-8s-3.6-8-8-8c-2.5 0-4.8 1.2-6.3 3L2 7l.7 4.3L7 10l-2.4-.4c1.2-1.5 3.1-2.6 5.2-2.6 3.3 0 6 2.7 6 6s-2.7 6-6 6c-1.4 0-2.7-.5-3.8-1.3L4.6 19c1.8 1.3 4 2 6.4 2h1z" />
+                                            <ellipse cx="14" cy="11" rx="1" ry="1.2" fill="currentColor" />
+                                        </svg>
+                                        <svg className="w-5 h-5 text-white/25" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M12 20c4.4 0 8-3.6 8-8s-3.6-8-8-8c-2.5 0-4.8 1.2-6.3 3L2 7l.7 4.3L7 10l-2.4-.4c1.2-1.5 3.1-2.6 5.2-2.6 3.3 0 6 2.7 6 6s-2.7 6-6 6c-1.4 0-2.7-.5-3.8-1.3L4.6 19c1.8 1.3 4 2 6.4 2h1z" />
+                                            <ellipse cx="14" cy="11" rx="1" ry="1.2" fill="currentColor" />
+                                        </svg>
+                                    </div>
+
+                                    <button className="flex-shrink-0 px-6 py-2.5 rounded-full bg-white/15 border border-white/30 text-white/80 font-medium text-sm backdrop-blur-sm hover:bg-white/20 hover:text-white transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
+                                        Stake Now
+                                    </button>
+                                </div>
                             </div>
                         </div>
+                    </div>
 
-                        {/* Card: Token */}
-                        <div className="relative h-[214px] overflow-hidden rounded-2xl p-6 backdrop-blur-xl bg-[radial-gradient(120%_120%_at_80%_20%,rgba(120,140,255,0.35)_0%,rgba(40,60,140,0.35)_45%,rgba(20,35,80,0.45)_100%)] border border-white/25 shadow-[0_8px_40px_rgba(0,0,0,0.25),0_0_25px_rgba(120,140,255,0.35)]">
-                            <div className="relative z-10">
-                                <div className="flex items-center gap-3 mb-4">
-
-                                    <Image src="/icons/token-icon.webp" alt="Token" width={48} height={48} className="w-12 h-12 object-contain" />
-
-                                    <span className="text-2xl font-medium text-white">Token</span>
-                                </div>
-                                <div className="text-5xl font-semibold text-white tracking-tight mb-1">
-                                    0
-                                </div>
-                                <div className="text-sm text-gray-400">MNT</div>
-                            </div>
-                        </div>
-
-                    </aside>
-
-                    {/* Right Column: Aquarium (70%) -> span 8/12 */}
-                    <section className="lg:col-span-9 flex flex-col">
-                        <div className="relative flex-1 flex flex-col overflow-hidden rounded-2xl p-6 md:p-8 backdrop-blur-xl bg-[radial-gradient(120%_120%_at_80%_20%,rgba(120,140,255,0.30)_0%,rgba(40,60,140,0.35)_45%,rgba(20,35,80,0.50)_100%)] border border-white/25 shadow-[0_8px_40px_rgba(0,0,0,0.25),0_0_25px_rgba(120,140,255,0.30)] min-h-[500px]">
+                    {/* My Aquarium Section - Full Width */}
+                    <section className="w-full flex-1">
+                        <div className="relative flex-1 flex flex-col overflow-hidden rounded-2xl p-6 md:p-8 backdrop-blur-xl bg-[radial-gradient(120%_120%_at_80%_20%,rgba(120,140,255,0.30)_0%,rgba(40,60,140,0.35)_45%,rgba(20,35,80,0.50)_100%)] border border-white/25 shadow-[0_8px_40px_rgba(0,0,0,0.25),0_0_25px_rgba(120,140,255,0.30)] min-h-[400px]">
                             {/* Header */}
                             <div className="flex items-center justify-between mb-8 z-10">
                                 <h2 className="text-xl md:text-2xl font-normal text-white">My Aquarium</h2>
@@ -290,25 +301,28 @@ export default function Dashboard() {
                                         <RotateCw className="w-5 h-5" />
                                     </button>
 
-                                    <button className="px-8 py-3 rounded-full bg-[#5A3BCE] hover:bg-[#4c32b3] text-white font-medium transition-all shadow-lg shadow-indigo-500/20">
-                                        Cast Line
-                                    </button>
+                                    <Button
+                                        variant="secondary"
+                                        className="!h-11 !px-6 !text-sm bg-white/10 border border-white/20 text-white/80 hover:bg-white/15"
+                                    >
+                                        Go Fishing Zone
+                                    </Button>
                                 </div>
                             </div>
 
                             {/* Empty State Content */}
                             <div className="flex-1 flex flex-col items-center justify-center text-center z-10 relative">
 
-                                {/* 3D Wallet / Placeholder Icon */}
-                                <div className="relative w-24 h-24 mb-6 flex items-center justify-center">
-                                    <Image src="/icons/wallet-icon.webp" alt="Connect Wallet" width={96} height={96} className="object-contain drop-shadow-xl opacity-90" />
+                                {/* Fish Icon */}
+                                <div className="relative w-20 h-20 mb-4 flex items-center justify-center">
+                                    <span className="text-5xl opacity-60">🐟</span>
                                 </div>
 
-                                <h3 className="text-xl font-bold text-white mb-2">
-                                    Connect Your Wallet First
+                                <h3 className="text-lg font-semibold text-white mb-2">
+                                    Your Aquarium is Empty
                                 </h3>
-                                <p className="text-gray-400 max-w-md mx-auto">
-                                    Stake at least 1 MNT to unlock Energy and access the fishing gameplay.
+                                <p className="text-gray-400 max-w-md mx-auto text-sm">
+                                    No fish have been caught yet. Go to the Fishing Zone to start catching fish.
                                 </p>
 
                             </div>
@@ -320,3 +334,4 @@ export default function Dashboard() {
         </div>
     )
 }
+
