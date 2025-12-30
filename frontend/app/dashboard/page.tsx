@@ -208,9 +208,9 @@ export default function Dashboard() {
                     <div className="flex flex-col lg:flex-row gap-4">
 
                         {/* Left Column: My Bait Supply (Stretches to match right column height) */}
-                        <div className="relative overflow-hidden rounded-2xl p-6 backdrop-blur-xl bg-[radial-gradient(120%_120%_at_80%_20%,rgba(120,140,255,0.35)_0%,rgba(40,60,140,0.35)_45%,rgba(20,35,80,0.45)_100%)] border border-white/25 shadow-[0_8px_40px_rgba(0,0,0,0.25),0_0_25px_rgba(120,140,255,0.35)] lg:w-[280px] xl:w-[320px] flex-shrink-0 min-h-[200px]">
+                        <div className="relative overflow-hidden rounded-3xl p-4 backdrop-blur-xl bg-[radial-gradient(120%_120%_at_80%_20%,rgba(120,140,255,0.35)_0%,rgba(40,60,140,0.35)_45%,rgba(20,35,80,0.45)_100%)] border border-white/25 shadow-[0_8px_40px_rgba(0,0,0,0.25),0_0_25px_rgba(120,140,255,0.35)] lg:w-[320px] xl:w-[380px] flex-shrink-0 min-h-[200px]">
                             <div className="relative z-10 h-full flex flex-col">
-                                <div className="flex items-center gap-3 mb-6">
+                                <div className="flex items-center gap-3 mb-3">
                                     <Image src="/icons/collection-icon.webp" alt="Bait Supply" width={40} height={40} className="w-10 h-10 object-contain" />
                                     <span className="text-lg font-medium text-white">My Bait Supply</span>
                                 </div>
@@ -222,7 +222,7 @@ export default function Dashboard() {
                                                 <div className="relative overflow-hidden rounded-3xl py-2.5 pl-2.5 pr-5 backdrop-blur-md bg-gradient-to-r from-[#3a4a8a]/50 to-[#4a5a9a]/30 border border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_4px_20px_rgba(0,0,0,0.15)] flex items-center gap-3">
                                                     <Image src="/bait/common-bait.webp" alt="Common Bait" width={48} height={48} className="w-12 h-12 object-contain shrink-0" />
                                                     <div className="flex-1 min-w-0">
-                                                        <p className="text-white text-sm font-semibold leading-tight truncate">Common Worm Bait</p>
+                                                        <p className="text-white text-base font-medium leading-tight truncate">Common Worm Bait</p>
                                                         <p className="text-white/70 text-xs leading-tight">Legendary Fish Chance: 0.5%</p>
                                                     </div>
                                                     <span className="text-white text-base font-semibold shrink-0">x12</span>
@@ -232,7 +232,7 @@ export default function Dashboard() {
                                                 <div className="relative overflow-hidden rounded-3xl py-2.5 pl-2.5 pr-5 backdrop-blur-md bg-gradient-to-r from-[#3a4a8a]/50 to-[#4a5a9a]/30 border border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_4px_20px_rgba(0,0,0,0.15)] flex items-center gap-3">
                                                     <Image src="/bait/rare-bait.webp" alt="Rare Bait" width={48} height={48} className="w-12 h-12 object-contain shrink-0" />
                                                     <div className="flex-1 min-w-0">
-                                                        <p className="text-white text-sm font-semibold leading-tight truncate">Rare Lure Bait</p>
+                                                        <p className="text-white text-base font-medium leading-tight truncate">Rare Lure Bait</p>
                                                         <p className="text-white/70 text-xs leading-tight">Legendary Fish Chance: 5%</p>
                                                     </div>
                                                     <span className="text-white text-base font-semibold shrink-0">x12</span>
@@ -242,7 +242,7 @@ export default function Dashboard() {
                                                 <div className="relative overflow-hidden rounded-3xl py-2.5 pl-2.5 pr-5 backdrop-blur-md bg-gradient-to-r from-[#3a4a8a]/50 to-[#4a5a9a]/30 border border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_4px_20px_rgba(0,0,0,0.15)] flex items-center gap-3">
                                                     <Image src="/bait/epic-bait.webp" alt="Epic Bait" width={48} height={48} className="w-12 h-12 object-contain shrink-0" />
                                                     <div className="flex-1 min-w-0">
-                                                        <p className="text-white text-sm font-semibold leading-tight truncate">Epic Gold Bait</p>
+                                                        <p className="text-white text-base font-medium leading-tight truncate">Epic Gold Bait</p>
                                                         <p className="text-white/70 text-xs leading-tight">Legendary Fish Chance: 5%</p>
                                                     </div>
                                                     <span className="text-white text-base font-semibold shrink-0">x12</span>
@@ -267,9 +267,9 @@ export default function Dashboard() {
                         {/* Right Column: 3 Cards + Staking Banner */}
                         <div className="flex-1 flex flex-col gap-4">
                             {/* 3 Cards Row */}
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="flex flex-col sm:flex-row gap-4 flex-1">
                                 {/* Card: My License Status */}
-                                <div className="relative overflow-hidden rounded-2xl p-5 backdrop-blur-xl bg-[radial-gradient(120%_120%_at_80%_20%,rgba(120,140,255,0.35)_0%,rgba(40,60,140,0.35)_45%,rgba(20,35,80,0.45)_100%)] border border-white/25 shadow-[0_8px_40px_rgba(0,0,0,0.25),0_0_25px_rgba(120,140,255,0.35)]">
+                                <div className="relative overflow-hidden rounded-2xl p-5 backdrop-blur-xl bg-[radial-gradient(120%_120%_at_80%_20%,rgba(120,140,255,0.35)_0%,rgba(40,60,140,0.35)_45%,rgba(20,35,80,0.45)_100%)] border border-white/25 shadow-[0_8px_40px_rgba(0,0,0,0.25),0_0_25px_rgba(120,140,255,0.35)] sm:w-[286px] shrink-0">
                                     <div className="relative z-10">
                                         <div className="flex items-center gap-3 mb-4">
                                             <Image src="/icons/energy-icon.webp" alt="License Status" width={40} height={40} className="w-10 h-10 object-contain" />
@@ -277,9 +277,9 @@ export default function Dashboard() {
                                         </div>
                                         {isConnected ? (
                                             <div>
-                                                <p className="text-[40px] leading-none font-medium text-white mb-2">None</p>
-                                                <p className="text-white/70 text-xs mb-3">You are now at zone:</p>
-                                                <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-gradient-to-r from-[#5448E8] to-[#8B5CF6] text-white text-xs font-medium shadow-md">
+                                                <p className="text-[56px] leading-none font-medium text-white mb-6">None</p>
+                                                <p className="text-white/70 text-sm mb-3">You are now at zone:</p>
+                                                <div className="inline-flex items-center px-5 py-2 rounded-full bg-gradient-to-r from-[#5448E8] to-[#8B5CF6] text-white text-sm font-medium shadow-lg">
                                                     Zone 1 - Shallow Waters
                                                 </div>
                                             </div>
@@ -290,7 +290,7 @@ export default function Dashboard() {
                                 </div>
 
                                 {/* Card: My Fish Collection */}
-                                <div className="relative overflow-hidden rounded-2xl p-5 backdrop-blur-xl bg-[radial-gradient(120%_120%_at_80%_20%,rgba(120,140,255,0.35)_0%,rgba(40,60,140,0.35)_45%,rgba(20,35,80,0.45)_100%)] border border-white/25 shadow-[0_8px_40px_rgba(0,0,0,0.25),0_0_25px_rgba(120,140,255,0.35)]">
+                                <div className="relative overflow-hidden rounded-2xl p-5 backdrop-blur-xl bg-[radial-gradient(120%_120%_at_80%_20%,rgba(120,140,255,0.35)_0%,rgba(40,60,140,0.35)_45%,rgba(20,35,80,0.45)_100%)] border border-white/25 shadow-[0_8px_40px_rgba(0,0,0,0.25),0_0_25px_rgba(120,140,255,0.35)] flex-1">
                                     <div className="relative z-10">
                                         <div className="flex items-center gap-3 mb-4">
                                             <Image src="/icons/fish-icon.webp" alt="Fish Collection" width={40} height={40} className="w-10 h-10 object-contain" />
@@ -298,13 +298,13 @@ export default function Dashboard() {
                                         </div>
                                         {isConnected ? (
                                             <div>
-                                                <p className="text-[40px] leading-none font-medium text-white mb-1">0</p>
-                                                <p className="text-white/70 text-sm mb-4">Fish</p>
-                                                <div className="flex flex-wrap xl:flex-nowrap gap-1">
-                                                    <span className="px-2 py-1 rounded-full bg-white/5 border border-white/20 text-white text-[10px] whitespace-nowrap">Common: 0</span>
-                                                    <span className="px-2 py-1 rounded-full bg-[#6366f1]/20 border border-[#6366f1]/50 text-white text-[10px] whitespace-nowrap">Rare: 0</span>
-                                                    <span className="px-2 py-1 rounded-full bg-[#06b6d4]/20 border border-[#06b6d4]/50 text-white text-[10px] whitespace-nowrap">Epic: 0</span>
-                                                    <span className="px-2 py-1 rounded-full bg-[#94a3b8]/20 border border-[#94a3b8]/50 text-white text-[10px] whitespace-nowrap">Legendary: 0</span>
+                                                <p className="text-[56px] leading-none font-medium text-white mb-6">0</p>
+                                                <p className="text-white/70 text-base mb-2">Fish</p>
+                                                <div className="flex flex-nowrap gap-2">
+                                                    <span className="px-3 py-1.5 rounded-full bg-gradient-to-b from-[#ffffff]/30 to-[#ffffff]/10 border border-white/30 backdrop-blur-md text-white text-xs font-medium whitespace-nowrap shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]">Common: 0</span>
+                                                    <span className="px-3 py-1.5 rounded-full bg-gradient-to-b from-[#5060D7]/50 to-[#5060D7]/25 border border-[#818CF8]/50 backdrop-blur-md text-white text-xs font-medium whitespace-nowrap shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]">Rare: 0</span>
+                                                    <span className="px-3 py-1.5 rounded-full bg-gradient-to-b from-[#6BEBEE]/50 to-[#6BEBEE]/25 border border-[#22D3EE]/50 backdrop-blur-md text-white text-xs font-medium whitespace-nowrap shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]">Epic: 0</span>
+                                                    <span className="px-3 py-1.5 rounded-full bg-gradient-to-b from-[#BD915B]/40 to-[#785A35]/20 border border-[#F59E0B]/50 backdrop-blur-md text-white text-xs font-medium whitespace-nowrap shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">Legendary: 0</span>
                                                 </div>
                                             </div>
                                         ) : (
@@ -314,7 +314,7 @@ export default function Dashboard() {
                                 </div>
 
                                 {/* Card: MNT Token */}
-                                <div className="relative overflow-hidden rounded-2xl p-5 backdrop-blur-xl bg-[radial-gradient(120%_120%_at_80%_20%,rgba(120,140,255,0.35)_0%,rgba(40,60,140,0.35)_45%,rgba(20,35,80,0.45)_100%)] border border-white/25 shadow-[0_8px_40px_rgba(0,0,0,0.25),0_0_25px_rgba(120,140,255,0.35)]">
+                                <div className="relative overflow-hidden rounded-2xl p-5 backdrop-blur-xl bg-[radial-gradient(120%_120%_at_80%_20%,rgba(120,140,255,0.35)_0%,rgba(40,60,140,0.35)_45%,rgba(20,35,80,0.45)_100%)] border border-white/25 shadow-[0_8px_40px_rgba(0,0,0,0.25),0_0_25px_rgba(120,140,255,0.35)] sm:w-[236px] shrink-0">
                                     <div className="relative z-10">
                                         <div className="flex items-center gap-3 mb-4">
                                             <Image src="/icons/token-icon.webp" alt="MNT Token" width={40} height={40} className="w-10 h-10 object-contain" />
@@ -322,8 +322,8 @@ export default function Dashboard() {
                                         </div>
                                         {isConnected ? (
                                             <div>
-                                                <p className="text-[40px] leading-none font-medium text-white mb-1">250</p>
-                                                <p className="text-white/70 text-sm">MNT</p>
+                                                <p className="text-[56px] leading-none font-medium text-white mb-1">250</p>
+                                                <p className="text-white/70 text-base">MNT</p>
                                             </div>
                                         ) : (
                                             <p className="text-white/50 text-sm">(No token available)</p>
