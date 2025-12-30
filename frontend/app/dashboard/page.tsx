@@ -14,6 +14,7 @@ export default function Dashboard() {
     const { disconnect } = useDisconnect();
     const [isScrolled, setIsScrolled] = useState(false);
     const [showWalletModal, setShowWalletModal] = useState(false);
+    const [showShopModal, setShowShopModal] = useState(false);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -250,6 +251,7 @@ export default function Dashboard() {
                                             </div>
 
                                             <Button
+                                                onClick={() => setShowShopModal(true)}
                                                 className="w-full !bg-[#5448E8] !text-white hover:!bg-[#4B40D0] !h-11 !rounded-full !text-sm !font-medium shadow-lg mt-4 shrink-0"
                                             >
                                                 Shop Baits
@@ -277,10 +279,23 @@ export default function Dashboard() {
                                         </div>
                                         {isConnected ? (
                                             <div>
-                                                <p className="text-[56px] leading-none font-medium text-white mb-6">None</p>
+                                                <div className="flex items-center gap-3 mb-6">
+                                                    <p className="text-[56px] leading-none font-medium text-white">Tier I</p>
+                                                    <div className="relative w-12 h-12">
+                                                        <svg className="w-full h-full" viewBox="0 0 47 47" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M23.5 0L30.5 8.5L40.5 10.5L43.5 20.5L35.5 28.5L36.5 38.5L23.5 47L10.5 38.5L11.5 28.5L3.5 20.5L6.5 10.5L16.5 8.5L23.5 0Z" fill="url(#hexGradient)" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5" />
+                                                            <defs>
+                                                                <linearGradient id="hexGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                                    <stop offset="0%" stopColor="#6D006F" stopOpacity="1" />
+                                                                    <stop offset="100%" stopColor="#4157E2" stopOpacity="1" />
+                                                                </linearGradient>
+                                                            </defs>
+                                                        </svg>
+                                                    </div>
+                                                </div>
                                                 <p className="text-white/70 text-sm mb-3">You are now at zone:</p>
                                                 <div className="inline-flex items-center px-5 py-2 rounded-full bg-gradient-to-r from-[#5448E8] to-[#8B5CF6] text-white text-sm font-medium shadow-lg">
-                                                    Zone 1 - Shallow Waters
+                                                    Zone 2 - Reef Zone
                                                 </div>
                                             </div>
                                         ) : (
@@ -489,6 +504,135 @@ export default function Dashboard() {
                                 </Button>
                             )}
                         </ConnectButton.Custom>
+                    </div>
+                </div>
+            )}
+
+            {/* Shop Baits Modal */}
+            {showShopModal && (
+                <div
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+                    onClick={() => setShowShopModal(false)}
+                >
+                    {/* Backdrop */}
+                    <div className="absolute inset-0 bg-[#0D1936]/80 backdrop-blur-sm" />
+
+                    {/* Modal Content */}
+                    <div
+                        className="relative z-10 w-full max-w-4xl p-8 rounded-[32px] bg-gradient-to-b from-[#1C2C65] to-[#0F1A3E] border border-white/20 shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="flex items-center justify-between mb-8">
+                            <h2 className="text-2xl font-semibold text-white">Baits Shop</h2>
+                            <button
+                                onClick={() => setShowShopModal(false)}
+                                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors border border-white/20"
+                            >
+                                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* Baits Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {/* Common Bait Card */}
+                            <div className="relative rounded-3xl p-6 border border-[#5060D7]/30 bg-[radial-gradient(circle_at_center,rgba(80,96,215,0.3)_0%,rgba(80,96,215,0.1)_100%)] flex flex-col items-center text-center group hover:border-[#5060D7]/60 transition-all">
+                                <div className="w-24 h-24 mb-4 relative drop-shadow-[0_4px_24px_rgba(80,96,215,0.4)]">
+                                    <Image src="/bait/common-bait.webp" alt="Common Worm Bait" fill className="object-contain" />
+                                </div>
+                                <h3 className="text-white text-lg font-medium mb-1">Common Worm Bait</h3>
+                                <p className="text-4xl font-bold text-white mb-4">1 MNT</p>
+
+                                <div className="px-4 py-1.5 rounded-full bg-[#2A3778]/50 border border-[#5060D7]/30 text-[#A0AEC0] text-xs mb-6">
+                                    Role: Grinding / High Junk
+                                </div>
+
+                                <div className="space-y-2 mb-8 text-sm text-[#E2E8F0]">
+                                    <div className="flex items-center gap-2 justify-center">
+                                        <span>🔥</span>
+                                        <span>Best for Zone 1 & 2</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 justify-center text-yellow-400">
+                                        <span>⚠️</span>
+                                        <span>High Junk Change</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 justify-center text-yellow-400">
+                                        <span>⚠️</span>
+                                        <span>Cannot Enter Zone 4</span>
+                                    </div>
+                                </div>
+
+                                <Button className="w-full !rounded-full !bg-[#5060D7] hover:!bg-[#4351B5] !h-12 !text-base shadow-[0_4px_20px_rgba(80,96,215,0.4)] mt-auto">
+                                    Purchase
+                                </Button>
+                            </div>
+
+                            {/* Rare Bait Card */}
+                            <div className="relative rounded-3xl p-6 border border-[#5060D7]/30 bg-[radial-gradient(circle_at_center,rgba(80,96,215,0.3)_0%,rgba(80,96,215,0.1)_100%)] flex flex-col items-center text-center group hover:border-[#5060D7]/60 transition-all">
+                                <div className="w-24 h-24 mb-4 relative drop-shadow-[0_4px_24px_rgba(80,96,215,0.4)]">
+                                    <Image src="/bait/rare-bait.webp" alt="Rare Lure Bait" fill className="object-contain" />
+                                </div>
+                                <h3 className="text-white text-lg font-medium mb-1">Rare Lure Bait</h3>
+                                <p className="text-4xl font-bold text-white mb-4">2 MNT</p>
+
+                                <div className="px-4 py-1.5 rounded-full bg-[#2A3778]/50 border border-[#5060D7]/30 text-[#A0AEC0] text-xs mb-6">
+                                    Role: Efficiency
+                                </div>
+
+                                <div className="space-y-2 mb-8 text-sm text-[#E2E8F0]">
+                                    <div className="flex items-center gap-2 justify-center">
+                                        <span>🔥</span>
+                                        <span>Best for Zone 2 & 3</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 justify-center text-yellow-400">
+                                        <span>⚠️</span>
+                                        <span>Reduced Junk Chance</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 justify-center text-yellow-400">
+                                        <span>⚠️</span>
+                                        <span>Cannot Enter Zone 4</span>
+                                    </div>
+                                </div>
+
+                                <Button className="w-full !rounded-full !bg-[#5060D7] hover:!bg-[#4351B5] !h-12 !text-base shadow-[0_4px_20px_rgba(80,96,215,0.4)] mt-auto">
+                                    Purchase
+                                </Button>
+                            </div>
+
+                            {/* Epic Bait Card */}
+                            <div className="relative rounded-3xl p-6 border border-[#5060D7]/30 bg-[radial-gradient(circle_at_center,rgba(80,96,215,0.3)_0%,rgba(80,96,215,0.1)_100%)] flex flex-col items-center text-center group hover:border-[#5060D7]/60 transition-all">
+                                <div className="w-24 h-24 mb-4 relative drop-shadow-[0_4px_24px_rgba(80,96,215,0.4)]">
+                                    <Image src="/bait/epic-bait.webp" alt="Epic Gold Bait" fill className="object-contain" />
+                                </div>
+                                <h3 className="text-white text-lg font-medium mb-1">Epic Gold Bait</h3>
+                                <p className="text-4xl font-bold text-white mb-4">4 MNT</p>
+
+                                <div className="px-4 py-1.5 rounded-full bg-[#2A3778]/50 border border-[#5060D7]/30 text-[#A0AEC0] text-xs mb-6">
+                                    Role: High Risk / Key
+                                </div>
+
+                                <div className="space-y-2 mb-8 text-sm text-[#E2E8F0]">
+                                    <div className="flex items-center gap-2 justify-center text-[#5060D7]">
+                                        <span>🔒</span>
+                                        <span>REQUIRED for Zone 4 (Abyssal)</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 justify-center">
+                                        <span>🔥</span>
+                                        <span>High Risk, High Reward</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 justify-center text-yellow-400">
+                                        <span>⚡</span>
+                                        <span>Highest Epic Fish Chance</span>
+                                    </div>
+                                </div>
+
+                                <Button className="w-full !rounded-full !bg-[#5060D7] hover:!bg-[#4351B5] !h-12 !text-base shadow-[0_4px_20px_rgba(80,96,215,0.4)] mt-auto">
+                                    Purchase
+                                </Button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
