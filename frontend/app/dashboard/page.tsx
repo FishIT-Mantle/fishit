@@ -13,6 +13,7 @@ export default function Dashboard() {
     // const { isConnected } = useAccount();
     const { disconnect } = useDisconnect();
     const [isScrolled, setIsScrolled] = useState(false);
+    const [showWalletModal, setShowWalletModal] = useState(false);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -281,7 +282,10 @@ export default function Dashboard() {
                                         </svg>
                                     </div>
 
-                                    <button className="flex-shrink-0 px-6 py-2.5 rounded-full bg-white/15 border border-white/30 text-white/80 font-medium text-sm backdrop-blur-sm hover:bg-white/20 hover:text-white transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
+                                    <button
+                                        onClick={() => setShowWalletModal(true)}
+                                        className="flex-shrink-0 px-6 py-2.5 rounded-full bg-white/15 border border-white/30 text-white/80 font-medium text-sm backdrop-blur-sm hover:bg-white/20 hover:text-white transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
+                                    >
                                         Stake Now
                                     </button>
                                 </div>
@@ -297,13 +301,17 @@ export default function Dashboard() {
                                 <h2 className="text-xl md:text-2xl font-normal text-white">My Aquarium</h2>
 
                                 <div className="flex items-center gap-4">
-                                    <button className="p-3 rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all border border-white/10">
+                                    <button
+                                        onClick={() => setShowWalletModal(true)}
+                                        className="p-3 rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all border border-white/10"
+                                    >
                                         <RotateCw className="w-5 h-5" />
                                     </button>
 
                                     <Button
                                         variant="secondary"
                                         className="!h-11 !px-6 !text-sm bg-white/10 border border-white/20 text-white/80 hover:bg-white/15"
+                                        onClick={() => setShowWalletModal(true)}
                                     >
                                         Go Fishing Zone
                                     </Button>
@@ -331,6 +339,66 @@ export default function Dashboard() {
 
                 </main>
             </div>
+
+            {/* Connect Wallet Modal */}
+            {showWalletModal && (
+                <div
+                    className="fixed inset-0 z-[100] flex items-center justify-center"
+                    onClick={() => setShowWalletModal(false)}
+                >
+                    {/* Backdrop */}
+                    <div className="absolute inset-0 bg-[#0D1936]/80 backdrop-blur-sm" />
+
+                    {/* Modal Card */}
+                    <div
+                        className="relative z-10 w-[90%] max-w-[420px] p-8 rounded-2xl bg-[radial-gradient(120%_120%_at_50%_0%,rgba(60,80,160,0.50)_0%,rgba(30,50,100,0.60)_50%,rgba(15,30,70,0.70)_100%)] border border-white/20 shadow-[0_20px_60px_rgba(0,0,0,0.5),0_0_40px_rgba(80,100,200,0.3)]"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Icon Container */}
+                        <div className="flex justify-center mb-6">
+
+                            <Image
+                                src="/icons/wallet-icon.webp"
+                                alt="Wallet"
+                                width={48}
+                                height={48}
+                                className="w-12 h-12 object-contain"
+                            />
+
+                        </div>
+
+                        {/* Title */}
+                        <h3 className="text-xl font-semibold text-white text-center mb-2">
+                            Connect Your Wallet First
+                        </h3>
+
+                        {/* Subtitle */}
+                        <p className="text-white/60 text-sm text-center mb-8">
+                            You must connect to your wallet to access all features
+                        </p>
+
+                        {/* Connect Button */}
+                        <ConnectButton.Custom>
+                            {({ openConnectModal }) => (
+                                <Button
+                                    onClick={() => {
+                                        setShowWalletModal(false);
+                                        openConnectModal();
+                                    }}
+                                    className="w-full gap-3"
+                                >
+                                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
+                                        <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
+                                        <path d="M18 12a2 2 0 0 0 0 4h4v-4h-4Z" />
+                                    </svg>
+                                    Connect Wallet
+                                </Button>
+                            )}
+                        </ConnectButton.Custom>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
