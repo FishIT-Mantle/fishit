@@ -7,10 +7,10 @@ import { FishAnimation } from "@/components/FishAnimation"
 import { Button } from "@/components/Button"
 import { RotateCw } from "lucide-react"
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useDisconnect } from 'wagmi';
+import { useAccount, useDisconnect } from 'wagmi';
 
 export default function Dashboard() {
-    // const { isConnected } = useAccount();
+    const { isConnected } = useAccount();
     const { disconnect } = useDisconnect();
     const [isScrolled, setIsScrolled] = useState(false);
     const [showWalletModal, setShowWalletModal] = useState(false);
@@ -214,8 +214,16 @@ export default function Dashboard() {
                                     <Image src="/icons/collection-icon.webp" alt="Bait Supply" width={40} height={40} className="w-10 h-10 object-contain" />
                                     <span className="text-lg font-medium text-white">My Bait Supply</span>
                                 </div>
-                                <div className="flex-1 flex items-center justify-center">
-                                    <p className="text-white/50 text-sm">(No bait available)</p>
+                                <div className="flex-1 flex flex-col items-center justify-center">
+                                    <p className="text-white/50 text-sm mb-4">(No bait available)</p>
+                                    {isConnected && (
+                                        <Button
+                                            variant="secondary"
+                                            className="!h-10 !px-6 !text-sm"
+                                        >
+                                            Shop Baits
+                                        </Button>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -227,33 +235,63 @@ export default function Dashboard() {
                                 {/* Card: My License Status */}
                                 <div className="relative overflow-hidden rounded-2xl p-5 backdrop-blur-xl bg-[radial-gradient(120%_120%_at_80%_20%,rgba(120,140,255,0.35)_0%,rgba(40,60,140,0.35)_45%,rgba(20,35,80,0.45)_100%)] border border-white/25 shadow-[0_8px_40px_rgba(0,0,0,0.25),0_0_25px_rgba(120,140,255,0.35)]">
                                     <div className="relative z-10">
-                                        <div className="flex items-center gap-3 mb-6">
+                                        <div className="flex items-center gap-3 mb-4">
                                             <Image src="/icons/energy-icon.webp" alt="License Status" width={40} height={40} className="w-10 h-10 object-contain" />
                                             <span className="text-lg font-medium text-white">My License Status</span>
                                         </div>
-                                        <p className="text-white/50 text-sm">(Status not available)</p>
+                                        {isConnected ? (
+                                            <>
+                                                <p className="text-3xl font-bold text-white mb-2">None</p>
+                                                <p className="text-white/50 text-xs mb-2">You are now at zone:</p>
+                                                <span className="inline-block px-4 py-1.5 rounded-full bg-[#5448E8]/30 border border-[#5448E8]/50 text-white text-xs font-medium">
+                                                    Zone 1 - Shallow Waters
+                                                </span>
+                                            </>
+                                        ) : (
+                                            <p className="text-white/50 text-sm">(Status not available)</p>
+                                        )}
                                     </div>
                                 </div>
 
                                 {/* Card: My Fish Collection */}
                                 <div className="relative overflow-hidden rounded-2xl p-5 backdrop-blur-xl bg-[radial-gradient(120%_120%_at_80%_20%,rgba(120,140,255,0.35)_0%,rgba(40,60,140,0.35)_45%,rgba(20,35,80,0.45)_100%)] border border-white/25 shadow-[0_8px_40px_rgba(0,0,0,0.25),0_0_25px_rgba(120,140,255,0.35)]">
                                     <div className="relative z-10">
-                                        <div className="flex items-center gap-3 mb-6">
+                                        <div className="flex items-center gap-3 mb-4">
                                             <Image src="/icons/fish-icon.webp" alt="Fish Collection" width={40} height={40} className="w-10 h-10 object-contain" />
                                             <span className="text-lg font-medium text-white">My Fish Collection</span>
                                         </div>
-                                        <p className="text-white/50 text-sm">(No fish available)</p>
+                                        {isConnected ? (
+                                            <>
+                                                <p className="text-3xl font-bold text-white">0</p>
+                                                <p className="text-white/50 text-sm mb-3">Fish</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    <span className="px-2 py-0.5 rounded-full border border-white/20 text-white/60 text-[10px]">Common: 0</span>
+                                                    <span className="px-2 py-0.5 rounded-full border border-white/20 text-white/60 text-[10px]">Rare: 0</span>
+                                                    <span className="px-2 py-0.5 rounded-full border border-white/20 text-white/60 text-[10px]">Epic: 0</span>
+                                                    <span className="px-2 py-0.5 rounded-full border border-white/20 text-white/60 text-[10px]">Legendary: 0</span>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <p className="text-white/50 text-sm">(No fish available)</p>
+                                        )}
                                     </div>
                                 </div>
 
                                 {/* Card: MNT Token */}
                                 <div className="relative overflow-hidden rounded-2xl p-5 backdrop-blur-xl bg-[radial-gradient(120%_120%_at_80%_20%,rgba(120,140,255,0.35)_0%,rgba(40,60,140,0.35)_45%,rgba(20,35,80,0.45)_100%)] border border-white/25 shadow-[0_8px_40px_rgba(0,0,0,0.25),0_0_25px_rgba(120,140,255,0.35)]">
                                     <div className="relative z-10">
-                                        <div className="flex items-center gap-3 mb-6">
+                                        <div className="flex items-center gap-3 mb-4">
                                             <Image src="/icons/token-icon.webp" alt="MNT Token" width={40} height={40} className="w-10 h-10 object-contain" />
                                             <span className="text-lg font-medium text-white">MNT Token</span>
                                         </div>
-                                        <p className="text-white/50 text-sm">(No token available)</p>
+                                        {isConnected ? (
+                                            <>
+                                                <p className="text-3xl font-bold text-white">250</p>
+                                                <p className="text-white/50 text-sm">MNT</p>
+                                            </>
+                                        ) : (
+                                            <p className="text-white/50 text-sm">(No token available)</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -282,12 +320,21 @@ export default function Dashboard() {
                                         </svg>
                                     </div>
 
-                                    <button
-                                        onClick={() => setShowWalletModal(true)}
-                                        className="flex-shrink-0 px-6 py-2.5 rounded-full bg-white/15 border border-white/30 text-white/80 font-medium text-sm backdrop-blur-sm hover:bg-white/20 hover:text-white transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
-                                    >
-                                        Stake Now
-                                    </button>
+                                    {isConnected ? (
+                                        <Button
+                                            variant="secondary"
+                                            className="!h-10 !px-6 !text-sm"
+                                        >
+                                            Stake Now
+                                        </Button>
+                                    ) : (
+                                        <button
+                                            onClick={() => setShowWalletModal(true)}
+                                            className="flex-shrink-0 px-6 py-2.5 rounded-full bg-white/15 border border-white/30 text-white/80 font-medium text-sm backdrop-blur-sm hover:bg-white/20 hover:text-white transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
+                                        >
+                                            Stake Now
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -302,19 +349,28 @@ export default function Dashboard() {
 
                                 <div className="flex items-center gap-4">
                                     <button
-                                        onClick={() => setShowWalletModal(true)}
+                                        onClick={() => !isConnected && setShowWalletModal(true)}
                                         className="p-3 rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all border border-white/10"
                                     >
                                         <RotateCw className="w-5 h-5" />
                                     </button>
 
-                                    <Button
-                                        variant="secondary"
-                                        className="!h-11 !px-6 !text-sm bg-white/10 border border-white/20 text-white/80 hover:bg-white/15"
-                                        onClick={() => setShowWalletModal(true)}
-                                    >
-                                        Go Fishing Zone
-                                    </Button>
+                                    {isConnected ? (
+                                        <Button
+                                            variant="primary"
+                                            className="!h-11 !px-6 !text-sm"
+                                        >
+                                            Go Fishing Zone
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            variant="secondary"
+                                            className="!h-11 !px-6 !text-sm bg-white/10 border border-white/20 text-white/80 hover:bg-white/15"
+                                            onClick={() => setShowWalletModal(true)}
+                                        >
+                                            Go Fishing Zone
+                                        </Button>
+                                    )}
                                 </div>
                             </div>
 
