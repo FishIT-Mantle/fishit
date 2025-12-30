@@ -214,14 +214,51 @@ export default function Dashboard() {
                                     <Image src="/icons/collection-icon.webp" alt="Bait Supply" width={40} height={40} className="w-10 h-10 object-contain" />
                                     <span className="text-lg font-medium text-white">My Bait Supply</span>
                                 </div>
-                                <div className="flex-1 flex flex-col items-center justify-center w-full">
-                                    <p className="text-white/50 text-sm mb-auto mt-auto">(No bait available)</p>
-                                    {isConnected && (
-                                        <Button
-                                            className="w-full !bg-[#5448E8] !text-white hover:!bg-[#4B40D0] !h-11 !rounded-full !text-sm !font-medium shadow-lg mt-6"
-                                        >
-                                            Shop Baits
-                                        </Button>
+                                <div className="flex-1 flex flex-col w-full h-full">
+                                    {isConnected ? (
+                                        <>
+                                            <div className="flex flex-col gap-2.5 mb-auto">
+                                                {/* Common Bait */}
+                                                <div className="relative overflow-hidden rounded-3xl py-2.5 pl-2.5 pr-5 backdrop-blur-md bg-gradient-to-r from-[#3a4a8a]/50 to-[#4a5a9a]/30 border border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_4px_20px_rgba(0,0,0,0.15)] flex items-center gap-3">
+                                                    <Image src="/bait/common-bait.webp" alt="Common Bait" width={48} height={48} className="w-12 h-12 object-contain shrink-0" />
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-white text-sm font-semibold leading-tight truncate">Common Worm Bait</p>
+                                                        <p className="text-white/70 text-xs leading-tight">Legendary Fish Chance: 0.5%</p>
+                                                    </div>
+                                                    <span className="text-white text-base font-semibold shrink-0">x12</span>
+                                                </div>
+
+                                                {/* Rare Bait */}
+                                                <div className="relative overflow-hidden rounded-3xl py-2.5 pl-2.5 pr-5 backdrop-blur-md bg-gradient-to-r from-[#3a4a8a]/50 to-[#4a5a9a]/30 border border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_4px_20px_rgba(0,0,0,0.15)] flex items-center gap-3">
+                                                    <Image src="/bait/rare-bait.webp" alt="Rare Bait" width={48} height={48} className="w-12 h-12 object-contain shrink-0" />
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-white text-sm font-semibold leading-tight truncate">Rare Lure Bait</p>
+                                                        <p className="text-white/70 text-xs leading-tight">Legendary Fish Chance: 5%</p>
+                                                    </div>
+                                                    <span className="text-white text-base font-semibold shrink-0">x12</span>
+                                                </div>
+
+                                                {/* Epic Bait */}
+                                                <div className="relative overflow-hidden rounded-3xl py-2.5 pl-2.5 pr-5 backdrop-blur-md bg-gradient-to-r from-[#3a4a8a]/50 to-[#4a5a9a]/30 border border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_4px_20px_rgba(0,0,0,0.15)] flex items-center gap-3">
+                                                    <Image src="/bait/epic-bait.webp" alt="Epic Bait" width={48} height={48} className="w-12 h-12 object-contain shrink-0" />
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-white text-sm font-semibold leading-tight truncate">Epic Gold Bait</p>
+                                                        <p className="text-white/70 text-xs leading-tight">Legendary Fish Chance: 5%</p>
+                                                    </div>
+                                                    <span className="text-white text-base font-semibold shrink-0">x12</span>
+                                                </div>
+                                            </div>
+
+                                            <Button
+                                                className="w-full !bg-[#5448E8] !text-white hover:!bg-[#4B40D0] !h-11 !rounded-full !text-sm !font-medium shadow-lg mt-4 shrink-0"
+                                            >
+                                                Shop Baits
+                                            </Button>
+                                        </>
+                                    ) : (
+                                        <div className="flex-1 flex items-center justify-center">
+                                            <p className="text-white/50 text-sm">(No bait available)</p>
+                                        </div>
                                     )}
                                 </div>
                             </div>
