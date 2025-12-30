@@ -214,12 +214,11 @@ export default function Dashboard() {
                                     <Image src="/icons/collection-icon.webp" alt="Bait Supply" width={40} height={40} className="w-10 h-10 object-contain" />
                                     <span className="text-lg font-medium text-white">My Bait Supply</span>
                                 </div>
-                                <div className="flex-1 flex flex-col items-center justify-center">
-                                    <p className="text-white/50 text-sm mb-4">(No bait available)</p>
+                                <div className="flex-1 flex flex-col items-center justify-center w-full">
+                                    <p className="text-white/50 text-sm mb-auto mt-auto">(No bait available)</p>
                                     {isConnected && (
                                         <Button
-                                            variant="secondary"
-                                            className="!h-10 !px-6 !text-sm"
+                                            className="w-full !bg-[#5448E8] !text-white hover:!bg-[#4B40D0] !h-11 !rounded-full !text-sm !font-medium shadow-lg mt-6"
                                         >
                                             Shop Baits
                                         </Button>
@@ -240,13 +239,13 @@ export default function Dashboard() {
                                             <span className="text-lg font-medium text-white">My License Status</span>
                                         </div>
                                         {isConnected ? (
-                                            <>
-                                                <p className="text-3xl font-bold text-white mb-2">None</p>
-                                                <p className="text-white/50 text-xs mb-2">You are now at zone:</p>
-                                                <span className="inline-block px-4 py-1.5 rounded-full bg-[#5448E8]/30 border border-[#5448E8]/50 text-white text-xs font-medium">
+                                            <div>
+                                                <p className="text-[40px] leading-none font-medium text-white mb-2">None</p>
+                                                <p className="text-white/70 text-xs mb-3">You are now at zone:</p>
+                                                <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-gradient-to-r from-[#5448E8] to-[#8B5CF6] text-white text-xs font-medium shadow-md">
                                                     Zone 1 - Shallow Waters
-                                                </span>
-                                            </>
+                                                </div>
+                                            </div>
                                         ) : (
                                             <p className="text-white/50 text-sm">(Status not available)</p>
                                         )}
@@ -261,16 +260,16 @@ export default function Dashboard() {
                                             <span className="text-lg font-medium text-white">My Fish Collection</span>
                                         </div>
                                         {isConnected ? (
-                                            <>
-                                                <p className="text-3xl font-bold text-white">0</p>
-                                                <p className="text-white/50 text-sm mb-3">Fish</p>
-                                                <div className="flex flex-wrap gap-2">
-                                                    <span className="px-2 py-0.5 rounded-full border border-white/20 text-white/60 text-[10px]">Common: 0</span>
-                                                    <span className="px-2 py-0.5 rounded-full border border-white/20 text-white/60 text-[10px]">Rare: 0</span>
-                                                    <span className="px-2 py-0.5 rounded-full border border-white/20 text-white/60 text-[10px]">Epic: 0</span>
-                                                    <span className="px-2 py-0.5 rounded-full border border-white/20 text-white/60 text-[10px]">Legendary: 0</span>
+                                            <div>
+                                                <p className="text-[40px] leading-none font-medium text-white mb-1">0</p>
+                                                <p className="text-white/70 text-sm mb-4">Fish</p>
+                                                <div className="flex flex-wrap xl:flex-nowrap gap-1">
+                                                    <span className="px-2 py-1 rounded-full bg-white/5 border border-white/20 text-white text-[10px] whitespace-nowrap">Common: 0</span>
+                                                    <span className="px-2 py-1 rounded-full bg-[#6366f1]/20 border border-[#6366f1]/50 text-white text-[10px] whitespace-nowrap">Rare: 0</span>
+                                                    <span className="px-2 py-1 rounded-full bg-[#06b6d4]/20 border border-[#06b6d4]/50 text-white text-[10px] whitespace-nowrap">Epic: 0</span>
+                                                    <span className="px-2 py-1 rounded-full bg-[#94a3b8]/20 border border-[#94a3b8]/50 text-white text-[10px] whitespace-nowrap">Legendary: 0</span>
                                                 </div>
-                                            </>
+                                            </div>
                                         ) : (
                                             <p className="text-white/50 text-sm">(No fish available)</p>
                                         )}
@@ -285,10 +284,10 @@ export default function Dashboard() {
                                             <span className="text-lg font-medium text-white">MNT Token</span>
                                         </div>
                                         {isConnected ? (
-                                            <>
-                                                <p className="text-3xl font-bold text-white">250</p>
-                                                <p className="text-white/50 text-sm">MNT</p>
-                                            </>
+                                            <div>
+                                                <p className="text-[40px] leading-none font-medium text-white mb-1">250</p>
+                                                <p className="text-white/70 text-sm">MNT</p>
+                                            </div>
                                         ) : (
                                             <p className="text-white/50 text-sm">(No token available)</p>
                                         )}
@@ -322,8 +321,7 @@ export default function Dashboard() {
 
                                     {isConnected ? (
                                         <Button
-                                            variant="secondary"
-                                            className="!h-10 !px-6 !text-sm"
+                                            className="!bg-white !text-[#4157E2] hover:!bg-white/90 !border-none !h-10 !px-8 !text-base !font-semibold shadow-lg"
                                         >
                                             Stake Now
                                         </Button>
@@ -350,15 +348,17 @@ export default function Dashboard() {
                                 <div className="flex items-center gap-4">
                                     <button
                                         onClick={() => !isConnected && setShowWalletModal(true)}
-                                        className="p-3 rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all border border-white/10"
+                                        className={`p-3 rounded-full transition-all ${isConnected
+                                            ? "bg-[#5448E8] text-white shadow-[0_2px_20px_rgba(84,72,232,0.6),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-[#4B40D0]"
+                                            : "bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10"
+                                            }`}
                                     >
                                         <RotateCw className="w-5 h-5" />
                                     </button>
 
                                     {isConnected ? (
                                         <Button
-                                            variant="primary"
-                                            className="!h-11 !px-6 !text-sm"
+                                            className="!bg-[#5448E8] !text-white !shadow-[0_2px_20px_rgba(84,72,232,0.6),inset_0_1px_0_rgba(255,255,255,0.2)] hover:!bg-[#4B40D0] !border-none !h-11 !px-8 !text-base !font-medium"
                                         >
                                             Go Fishing Zone
                                         </Button>
