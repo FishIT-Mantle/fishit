@@ -23,7 +23,7 @@ export function IntroView({ zone, onStart }: IntroViewProps) {
 
             <Button
                 onClick={onStart}
-                className="!px-10 !py-6 !rounded-full !text-lg !font-bold shadow-[0_0_40px_rgba(84,72,232,0.6)] hover:shadow-[0_0_60px_rgba(84,72,232,0.8)] transition-all transform hover:-translate-y-1 active:scale-95 animate-fade-in-up delay-300 !bg-[#5448E8] hover:!bg-[#4B40D0] !h-auto"
+                className="!px-6 !py-4 !rounded-full !text-lg !font-bold shadow-[0_0_40px_rgba(84,72,232,0.6)] hover:shadow-[0_0_60px_rgba(84,72,232,0.8)] transition-all transform hover:-translate-y-1 active:scale-95 animate-fade-in-up delay-300 !bg-[#5448E8] hover:!bg-[#4B40D0] !h-auto"
             >
                 Start Fishing Now
             </Button>
