@@ -1,10 +1,18 @@
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 interface SelectZoneModalProps {
     onClose: () => void;
 }
 
 export default function SelectZoneModal({ onClose }: SelectZoneModalProps) {
+    const router = useRouter();
+
+    const handleZoneSelect = (slug: string) => {
+        router.push(`/gameplay/${slug}`);
+        onClose();
+    };
+
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             {/* Backdrop */}
@@ -38,46 +46,50 @@ export default function SelectZoneModal({ onClose }: SelectZoneModalProps) {
                             {
                                 id: 1,
                                 name: "Shallow Waters",
-                                image: "/images/bg-1.webp",
+                                image: "/gameplay/shallow-water.webp",
                                 license: "License: None",
                                 cost: "Cost: 1 Bait (Any)",
                                 junk: "High Junk Rate",
                                 desc: "Good for farming Common fish",
                                 btnText: "Enter Zone",
+                                slug: "shallow-waters",
                                 burn: null,
                                 extra: null
                             },
                             {
                                 id: 2,
                                 name: "Reef Zone",
-                                image: "/images/bg-1.webp",
+                                image: "/gameplay/reef-zone.webp",
                                 license: "License: Tier I",
                                 cost: "Cost: 1 Bait",
                                 burn: "Burn: 3 Common Fish",
                                 desc: "Balanced drop rates. Essential for upgrades.",
                                 btnText: "Enter (Burn 3 Common)",
+                                slug: "reef-zone",
                                 extra: null
                             },
                             {
                                 id: 3,
                                 name: "Deep Sea",
-                                image: "/images/bg-1.webp",
+                                image: "/gameplay/deep-sea.webp",
                                 license: "License: Tier II",
                                 cost: "Fee: 1 MNT",
                                 burn: "Burn: 2 Rare Fish",
                                 desc: "Home of the Whales. Increased Epic chance.",
                                 btnText: "ENTER (Pay 1 MNT + Burn)",
+                                slug: "deep-sea",
                                 extra: null
                             },
                             {
                                 id: 4,
                                 name: "Abyssal Trench",
-                                image: "/images/bg-1.webp",
+                                image: "/gameplay/abyssal-trench.webp",
                                 license: "License: Tier III",
                                 cost: "Fee: 1 MNT",
                                 burn: "Burn: 1 Epic Fish",
                                 desc: "The only source of Legendary Fish",
                                 btnText: "Enter Zone",
+                                slug: "abyssal-trench",
                                 extra: "Epic Bait Only"
                             }
                         ].map((zone) => (
@@ -129,7 +141,9 @@ export default function SelectZoneModal({ onClose }: SelectZoneModalProps) {
                                 </div>
 
                                 {/* Button */}
-                                <button className="w-full h-[50px] rounded-full bg-[#5448E8] hover:bg-[#4B40D0] text-white text-base font-semibold shadow-[0_4px_15px_rgba(84,72,232,0.4)] hover:shadow-[0_6px_20px_rgba(84,72,232,0.6)] transition-all transform active:scale-[0.98]">
+                                <button
+                                    onClick={() => handleZoneSelect(zone.slug)}
+                                    className="w-full h-[50px] rounded-full bg-[#5448E8] hover:bg-[#4B40D0] text-white text-base font-semibold shadow-[0_4px_15px_rgba(84,72,232,0.4)] hover:shadow-[0_6px_20px_rgba(84,72,232,0.6)] transition-all transform active:scale-[0.98]">
                                     {zone.btnText}
                                 </button>
                             </div>
