@@ -22,7 +22,7 @@ export class MainScene extends Phaser.Scene {
     private bobber!: Phaser.GameObjects.Graphics;
     private strikeIndicator!: Phaser.GameObjects.Text;
     private waterOverlay!: Phaser.GameObjects.Graphics;
-    private clouds!: Phaser.GameObjects.Graphics;
+    private cloudsOverlay!: Phaser.GameObjects.Graphics;
 
     // Reeling Mini-game
     private tensionBar!: Phaser.GameObjects.Graphics;
@@ -64,50 +64,48 @@ export class MainScene extends Phaser.Scene {
         bg.setDisplaySize(width, height);
         bg.setDepth(0);
 
-        // --- CLOUDS (Layer 0.5 - animated cloud layer) ---
-        this.createCloudLayer();
+        // --- CLOUDS OVERLAY (Layer 0.5 - subtle parallax effect) ---
+        this.createCloudsOverlay();
 
-        // --- WATER SHIMMER EFFECT (Layer 1 - above background, below boat) ---
+        // --- WATER SHIMMER EFFECT (Layer 1 - visible wave animation) ---
         this.createWaterShimmer();
 
         // --- BOAT (Layer 2 - Canoe view, moderate size at bottom) ---
-        // Position boat centered at bottom, sized like a canoe (~50% width)
         this.boat = this.add.image(width / 2, height + 30, 'boat');
-        this.boat.setOrigin(0.5, 1); // Anchor at bottom-center
-        // Scale boat to ~55% screen width (canoe-like, not full screen)
+        this.boat.setOrigin(0.5, 1);
         const boatTargetWidth = width * 0.55;
         const boatScale = boatTargetWidth / this.boat.width;
         this.boat.setScale(boatScale);
         this.boat.setDepth(2);
 
-        // Very subtle bobbing - boat is large so movement should be minimal
+        // Boat gentle bobbing
         this.tweens.add({
             targets: this.boat,
-            y: this.boat.y - 3,
+            y: this.boat.y - 4,
             duration: 2500,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
 
-        // --- ROD (Layer 3 - Bottom-right corner, realistic fishing rod) ---
-        // Rod positioned at far right corner, as if player is holding it
-        const rodX = width * 0.88; // Far right side
-        const rodY = height + 50; // Below screen edge (handle off-screen)
+        // --- ROD (Layer 3 - CENTERED on top of boat) ---
+        // Rod positioned center-right, above the boat deck
+        const rodX = width / 2 + 50; // Slightly right of center
+        const rodY = height - 80; // Above boat deck area
         this.rod = this.add.image(rodX, rodY, 'rod');
-        this.rod.setOrigin(0.5, 1); // Anchor at bottom-center
-        // Scale rod to ~35% of viewport height (realistic size)
-        const rodTargetHeight = height * 0.38;
+        this.rod.setOrigin(0.5, 1);
+        // Scale rod to ~45% of viewport height
+        const rodTargetHeight = height * 0.45;
         const rodScale = rodTargetHeight / this.rod.height;
         this.rod.setScale(rodScale);
-        this.rod.setRotation(0.25); // Angled as if being held, pointing left
+        this.rod.setRotation(-0.15); // Angled slightly to the right
         this.rod.setDepth(3);
 
-        // Rod subtle sway animation
+        // Rod gentle sway animation
         this.tweens.add({
             targets: this.rod,
-            rotation: 0.3,
-            duration: 2500,
+            rotation: -0.08,
+            duration: 2000,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
@@ -148,17 +146,18 @@ export class MainScene extends Phaser.Scene {
         this.setPhase('IDLE');
     }
 
-    private createCloudLayer() {
+    private createCloudsOverlay() {
         const { width, height } = this.scale;
-        this.clouds = this.add.graphics();
-        this.clouds.setDepth(0.5); // Between background and water
+        this.cloudsOverlay = this.add.graphics();
+        this.cloudsOverlay.setAlpha(0.15); // Very subtle
+        this.cloudsOverlay.setDepth(0.5);
     }
 
     private createWaterShimmer() {
         const { width, height } = this.scale;
         this.waterOverlay = this.add.graphics();
-        this.waterOverlay.setAlpha(0.5); // More visible
-        this.waterOverlay.setDepth(1); // Layer 1 - between background and boat
+        this.waterOverlay.setAlpha(0.6); // More visible
+        this.waterOverlay.setDepth(1);
     }
 
     private drawBobber(x: number, y: number) {
@@ -178,10 +177,10 @@ export class MainScene extends Phaser.Scene {
     }
 
     update(time: number, delta: number) {
-        // Cloud animation
-        this.updateCloudLayer(time);
+        // Cloud parallax animation
+        this.updateCloudsOverlay(time);
 
-        // Water shimmer animation
+        // Water wave animation
         this.updateWaterShimmer(time);
 
         // Reeling mini-game logic
@@ -190,53 +189,56 @@ export class MainScene extends Phaser.Scene {
         }
     }
 
-    private updateCloudLayer(time: number) {
+    private updateCloudsOverlay(time: number) {
         const { width, height } = this.scale;
-        this.clouds.clear();
+        this.cloudsOverlay.clear();
 
-        // Draw animated clouds moving horizontally
-        const cloudConfigs = [
-            { baseX: 100, y: height * 0.12, speed: 0.015, size: 60, opacity: 0.6 },
-            { baseX: 350, y: height * 0.08, speed: 0.02, size: 80, opacity: 0.5 },
-            { baseX: 600, y: height * 0.15, speed: 0.012, size: 50, opacity: 0.7 },
-            { baseX: 850, y: height * 0.1, speed: 0.018, size: 70, opacity: 0.55 },
-        ];
+        // Subtle moving cloud shadows/highlights
+        const cloudLayerY = height * 0.15;
+        const cloudSpeed = time * 0.008;
 
-        cloudConfigs.forEach((cloud, i) => {
-            // Cloud moves from left to right, wrapping around
-            const x = ((cloud.baseX + time * cloud.speed) % (width + 200)) - 100;
-            const y = cloud.y + Math.sin(time / 3000 + i) * 5; // Gentle vertical float
+        for (let i = 0; i < 5; i++) {
+            const x = ((i * 250 + cloudSpeed) % (width + 300)) - 150;
+            const y = cloudLayerY + Math.sin(time / 4000 + i * 2) * 10;
+            const size = 80 + i * 20;
 
-            // Draw cloud as overlapping ellipses
-            this.clouds.fillStyle(0xFFFFFF, cloud.opacity);
-            this.clouds.fillEllipse(x, y, cloud.size * 1.5, cloud.size * 0.6);
-            this.clouds.fillEllipse(x - cloud.size * 0.4, y + 5, cloud.size, cloud.size * 0.5);
-            this.clouds.fillEllipse(x + cloud.size * 0.5, y + 3, cloud.size * 0.8, cloud.size * 0.45);
-        });
+            // Very subtle cloud highlight
+            this.cloudsOverlay.fillStyle(0xFFFFFF, 0.08 + Math.sin(time / 3000 + i) * 0.03);
+            this.cloudsOverlay.fillEllipse(x, y, size * 2, size * 0.5);
+            this.cloudsOverlay.fillEllipse(x + size * 0.5, y + 8, size * 1.5, size * 0.4);
+        }
     }
 
     private updateWaterShimmer(time: number) {
         const { width, height } = this.scale;
-        const waterStartY = height * 0.45; // Water visible above boat
+        // Water zone: from horizon (50%) to before boat (75%)
+        const waterStartY = height * 0.50;
+        const waterEndY = height * 0.75;
 
         this.waterOverlay.clear();
 
-        // Draw visible wave ripples on water surface
-        for (let i = 0; i < 6; i++) {
-            const yOffset = Math.sin((time / 1000) + i * 0.6) * 5;
-            const lineY = waterStartY + 20 + (i * 35) + yOffset;
+        // Draw visible wave ripples in water zone
+        for (let i = 0; i < 8; i++) {
+            const baseY = waterStartY + (i / 8) * (waterEndY - waterStartY);
+            const yOffset = Math.sin((time / 800) + i * 0.7) * 4;
+            const lineY = baseY + yOffset;
 
-            if (lineY > height * 0.7) continue; // Don't draw below boat area
+            if (lineY < waterStartY || lineY > waterEndY) continue;
 
-            const opacity = 0.2 + Math.sin(time / 800 + i * 0.4) * 0.1;
+            // Opacity increases toward bottom (perspective)
+            const depthFactor = (lineY - waterStartY) / (waterEndY - waterStartY);
+            const baseOpacity = 0.08 + depthFactor * 0.15;
+            const opacity = baseOpacity + Math.sin(time / 600 + i * 0.4) * 0.05;
 
-            // Primary wave line
-            this.waterOverlay.lineStyle(3, 0x4FC3F7, opacity);
+            // Primary wave - light blue
+            this.waterOverlay.lineStyle(2 + depthFactor * 2, 0x87CEEB, opacity);
             this.waterOverlay.beginPath();
 
-            for (let x = 0; x < width; x += 12) {
-                const waveY = lineY + Math.sin((x / 35) + (time / 350) + i * 0.7) * 8;
-                if (x === 0) {
+            for (let x = -50; x < width + 50; x += 15) {
+                const waveAmplitude = 3 + depthFactor * 5;
+                const waveFreq = 40 - depthFactor * 15;
+                const waveY = lineY + Math.sin((x / waveFreq) + (time / 400) + i * 0.6) * waveAmplitude;
+                if (x === -50) {
                     this.waterOverlay.moveTo(x, waveY);
                 } else {
                     this.waterOverlay.lineTo(x, waveY);
@@ -244,20 +246,24 @@ export class MainScene extends Phaser.Scene {
             }
             this.waterOverlay.strokePath();
 
-            // Secondary highlight wave
-            this.waterOverlay.lineStyle(1.5, 0xB3E5FC, opacity * 0.7);
-            this.waterOverlay.beginPath();
-            for (let x = 0; x < width; x += 12) {
-                const waveY = lineY + 3 + Math.sin((x / 35) + (time / 350) + i * 0.7 + 0.5) * 6;
-                if (x === 0) {
-                    this.waterOverlay.moveTo(x, waveY);
-                } else {
-                    this.waterOverlay.lineTo(x, waveY);
+            // Secondary wave highlight - white sparkle
+            if (i % 2 === 0) {
+                this.waterOverlay.lineStyle(1, 0xFFFFFF, opacity * 0.5);
+                this.waterOverlay.beginPath();
+                for (let x = -50; x < width + 50; x += 15) {
+                    const waveY = lineY + 2 + Math.sin((x / 35) + (time / 350) + i * 0.8) * 3;
+                    if (x === -50) {
+                        this.waterOverlay.moveTo(x, waveY);
+                    } else {
+                        this.waterOverlay.lineTo(x, waveY);
+                    }
                 }
+                this.waterOverlay.strokePath();
             }
-            this.waterOverlay.strokePath();
         }
     }
+
+
 
     // --- PHASE MANAGEMENT ---
     private setPhase(phase: GamePhase) {
