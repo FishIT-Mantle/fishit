@@ -19,19 +19,21 @@ export default function GameplayContainer({ zone }: GameplayContainerProps) {
 
     return (
         <div className="relative min-h-screen overflow-hidden bg-[#0D1936] text-white font-sans selection:bg-cyan-500/30">
-            {/* --- BACKGROUND LAYER (Always Visible) --- */}
-            <div className="absolute inset-0 z-0">
-                <Image
-                    src={zone.background}
-                    alt={zone.name}
-                    fill
-                    priority
-                    className="object-cover object-center"
-                    quality={100}
-                />
-                {/* Overlay for readability - Slightly darker in Intro */}
-                <div className={`absolute inset-0 bg-black/30 transition-opacity duration-1000 ${gameState === 'INTRO' ? 'opacity-100' : 'opacity-10'}`} />
-            </div>
+            {/* --- BACKGROUND LAYER (Only visible in INTRO) --- */}
+            {gameState === 'INTRO' && (
+                <div className="absolute inset-0 z-0">
+                    <Image
+                        src={zone.background}
+                        alt={zone.name}
+                        fill
+                        priority
+                        className="object-cover object-center"
+                        quality={100}
+                    />
+                    {/* Overlay for readability */}
+                    <div className="absolute inset-0 bg-black/30" />
+                </div>
+            )}
 
             {/* --- NAVBAR LAYER (Always Visible) --- */}
             <nav className="absolute top-0 left-0 w-full z-30 px-6 py-6 md:px-12 flex items-center justify-between">
