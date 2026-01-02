@@ -175,9 +175,9 @@ export function GameplayView({ zone, onOpenShop }: GameplayViewProps) {
                                             <div className="flex-1">
                                                 <p className="text-white text-sm font-medium">{fish.name}</p>
                                                 <p className={`text-xs ${fish.rarity === 'Epic' ? 'text-purple-400' :
-                                                        fish.rarity === 'Rare' ? 'text-blue-400' :
-                                                            fish.rarity === 'Uncommon' ? 'text-green-400' :
-                                                                'text-white/50'
+                                                    fish.rarity === 'Rare' ? 'text-blue-400' :
+                                                        fish.rarity === 'Uncommon' ? 'text-green-400' :
+                                                            'text-white/50'
                                                     }`}>{fish.rarity}</p>
                                             </div>
                                         </div>
@@ -205,7 +205,7 @@ export function GameplayView({ zone, onOpenShop }: GameplayViewProps) {
                     <div className="mt-auto w-full flex justify-center pb-12 z-20 pointer-events-auto">
                         <Button
                             onClick={handleCastLine}
-                            className="!w-[340px] !h-[64px] !text-xl !font-bold shadow-[0_4px_30px_rgba(84,72,232,0.6)] border-t border-white/20 animate-bounce-subtle !rounded-[24px]"
+                            className="!w-[250px] !h-[64px] !text-xl !font-bold shadow-[0_4px_30px_rgba(84,72,232,0.6)] border-t border-white/20 animate-bounce-subtle !rounded-full"
                         >
                             Cast Line
                         </Button>
