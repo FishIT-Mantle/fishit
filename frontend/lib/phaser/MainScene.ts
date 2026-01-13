@@ -15,19 +15,14 @@ export interface MainSceneConfig {
     onCatchFail?: () => void;
 }
 
-// Bioluminescence particle type
-interface BioParticle {
-    x: number;
-    y: number;
-    size: number;
-    speed: number;
-    swayOffset: number;
-    alpha: number;
-}
-
 /**
- * MainScene - Enhanced Visual Polish Phase 2
- * Features: Organic waves, Foam, Bioluminescence, Moon reflection, Enhanced fog
+ * MainScene - Asset-Based Water Rendering
+ * 
+ * Layer Architecture (3-Layer Sandwich):
+ * - Layer 3: Base water gradient
+ * - Layer 3.5: TileSprite water ripples (perspective-squashed)
+ * - Layer 3.6: Sun/moon reflection image
+ * - Layer 3.7: Fog overlay
  */
 export class MainScene extends Phaser.Scene {
     private config!: MainSceneConfig;
@@ -39,8 +34,8 @@ export class MainScene extends Phaser.Scene {
     private atmosphereGraphics!: Phaser.GameObjects.Graphics;
     private fogGraphics!: Phaser.GameObjects.Graphics;
     private waterGraphics!: Phaser.GameObjects.Graphics;
-    private waterSurfaceGraphics!: Phaser.GameObjects.Graphics;
-    private biolumGraphics!: Phaser.GameObjects.Graphics;
+    private waterRipples!: Phaser.GameObjects.TileSprite;  // NEW: Asset-based ripples
+    private sunReflection!: Phaser.GameObjects.Image;      // NEW: Sun/moon reflection
     private foregroundLayer!: Phaser.GameObjects.Image | null;
 
     // Gameplay
@@ -60,7 +55,6 @@ export class MainScene extends Phaser.Scene {
 
     // Effects state
     private nextShootingStarTime: number = 0;
-    private bioParticles: BioParticle[] = [];
 
     constructor() {
         super({ key: 'MainScene' });
@@ -80,6 +74,10 @@ export class MainScene extends Phaser.Scene {
         if (assets.foreground) {
             this.load.image(assets.foreground, `/zone/${assets.foreground}.webp`);
         }
+
+        // Water assets (NEW: Asset-based water rendering)
+        this.load.image('water_ripples', '/zone/water_ripples.webp');
+        this.load.image('sun_reflection', '/zone/sun_reflection.webp');
 
         this.load.image('boat', this.config.boatUrl || '/gameplay/kapal.webp');
         this.load.image('rod', this.config.rodUrl || '/gameplay/pancingan.webp');
@@ -101,23 +99,19 @@ export class MainScene extends Phaser.Scene {
 
         // === LAYER 2.5: FOG (Enhanced) ===
         this.fogGraphics = this.add.graphics();
-        this.fogGraphics.setDepth(2.5);
+        this.fogGraphics.setDepth(3.7);  // UPDATED: On top of water but behind boat
         this.createFog(width);
 
-        // === LAYER 3: WATER ===
+        // === LAYER 3: WATER BASE GRADIENT ===
         this.waterGraphics = this.add.graphics();
         this.waterGraphics.setDepth(3);
         this.drawWater(width, height);
 
-        // === LAYER 3.5: BIOLUMINESCENCE ===
-        this.biolumGraphics = this.add.graphics();
-        this.biolumGraphics.setDepth(3.5);
-        this.biolumGraphics.setBlendMode(Phaser.BlendModes.ADD);
-        this.initBioluminescence(width, height);
+        // === LAYER 3.5: WATER RIPPLES (TileSprite) ===
+        this.createWaterRipples(width, height);
 
-        // === LAYER 4: WATER SURFACE ===
-        this.waterSurfaceGraphics = this.add.graphics();
-        this.waterSurfaceGraphics.setDepth(4);
+        // === LAYER 3.6: SUN/MOON REFLECTION ===
+        this.createSunReflection(width, height);
 
         // === LAYER 5: BOAT & ROD ===
         this.createBoatAndRod(width, height);
@@ -426,63 +420,64 @@ export class MainScene extends Phaser.Scene {
     }
 
     // ==========================================
-    // BIOLUMINESCENCE
+    // WATER RIPPLES (Asset-based TileSprite)
     // ==========================================
 
-    private initBioluminescence(width: number, height: number) {
-        // Only for night zones
-        if (this.zone.id === 'shallow-waters') return;
-
-        const particleCount = this.zone.id === 'abyssal-trench' ? 30 : 20;
+    private createWaterRipples(width: number, height: number) {
         const waterHeight = height - this.horizonY;
 
-        for (let i = 0; i < particleCount; i++) {
-            this.bioParticles.push({
-                x: Phaser.Math.Between(0, width),
-                y: this.horizonY + Phaser.Math.Between(40, waterHeight - 50),
-                size: Phaser.Math.FloatBetween(1.5, 3.5),
-                speed: Phaser.Math.FloatBetween(0.15, 0.4),
-                swayOffset: Phaser.Math.FloatBetween(0, Math.PI * 2),
-                alpha: Phaser.Math.FloatBetween(0.3, 0.7)
-            });
-        }
+        // Create TileSprite covering entire water area
+        this.waterRipples = this.add.tileSprite(
+            width / 2,                    // x: center
+            this.horizonY + waterHeight / 2,  // y: center of water area
+            width,                        // width: full screen
+            waterHeight,                  // height: water area only
+            'water_ripples'
+        );
+
+        this.waterRipples.setDepth(3.5);
+        this.waterRipples.setBlendMode(Phaser.BlendModes.ADD);
+
+        // CRITICAL: Squash Y scale to create perspective horizontal lines
+        // Low Y scale (0.08-0.12) makes ripples appear as thin horizontal striations
+        this.waterRipples.setTileScale(0.5, 0.1);
+
+        // Subtle visibility - these should enhance, not overpower
+        const isNightZone = this.zone.id !== 'shallow-waters';
+        this.waterRipples.setAlpha(isNightZone ? 0.2 : 0.35);
     }
 
-    private drawBioluminescence(width: number, height: number, time: number) {
-        if (this.zone.id === 'shallow-waters') return;
+    // ==========================================
+    // SUN/MOON REFLECTION (Image Layer)
+    // ==========================================
 
-        this.biolumGraphics.clear();
+    private createSunReflection(width: number, height: number) {
+        // Position: centered horizontally, just below horizon
+        this.sunReflection = this.add.image(
+            width / 2,
+            this.horizonY + 80,  // 80px below horizon
+            'sun_reflection'
+        );
 
-        // Zone-specific colors
-        let glowColor = 0x00FFFF; // Cyan default
-        if (this.zone.id === 'deep-sea') glowColor = 0x20B2AA; // Teal
-        if (this.zone.id === 'abyssal-trench') glowColor = 0x4169E1; // Royal Blue
+        this.sunReflection.setOrigin(0.5, 0.5);
+        this.sunReflection.setDepth(3.6);
+        this.sunReflection.setBlendMode(Phaser.BlendModes.ADD);
 
-        for (const p of this.bioParticles) {
-            // Update position (slow rise + sway)
-            p.y -= p.speed;
-            p.x += Math.sin(time / 1500 + p.swayOffset) * 0.3;
+        // Scale to fit nicely - adjust based on asset size
+        const targetWidth = width * 0.6;
+        const scale = targetWidth / this.sunReflection.width;
+        this.sunReflection.setScale(scale, scale * 0.4);  // Squash vertically for water look
 
-            // Reset if above water surface
-            if (p.y < this.horizonY + 30) {
-                p.y = height - 30;
-                p.x = Phaser.Math.Between(0, width);
-            }
-
-            // Wrap horizontally
-            if (p.x < 0) p.x = width;
-            if (p.x > width) p.x = 0;
-
-            // Pulsing alpha
-            const pulseAlpha = p.alpha * (0.6 + Math.sin(time / 800 + p.swayOffset) * 0.4);
-
-            // Glow
-            this.biolumGraphics.fillStyle(glowColor, pulseAlpha * 0.3);
-            this.biolumGraphics.fillCircle(p.x, p.y, p.size * 3);
-
-            // Core
-            this.biolumGraphics.fillStyle(0xFFFFFF, pulseAlpha);
-            this.biolumGraphics.fillCircle(p.x, p.y, p.size);
+        // Day vs Night appearance
+        const isNightZone = this.zone.id !== 'shallow-waters';
+        if (isNightZone) {
+            // Night: dim, cool-tinted glow (moon reflection)
+            this.sunReflection.setAlpha(0.3);
+            this.sunReflection.setTint(0xCCDDFF);  // Cool blue-white
+        } else {
+            // Day: bright, warm sun reflection
+            this.sunReflection.setAlpha(0.6);
+            this.sunReflection.setTint(0xFFFFDD);  // Warm white
         }
     }
 
@@ -515,90 +510,30 @@ export class MainScene extends Phaser.Scene {
         }
     }
 
-    private drawWaterSurface(width: number, time: number) {
-        this.waterSurfaceGraphics.clear();
+    // ==========================================
+    // WATER SURFACE UPDATE (TileSprite Animation)
+    // ==========================================
 
-        const [surfaceColor] = this.zone.colors.water;
-        const colorObj = Phaser.Display.Color.ValueToColor(surfaceColor);
+    private updateWaterSurface(time: number) {
+        // Animate water ripples TileSprite
+        // Horizontal drift: simulate gentle current
+        this.waterRipples.tilePositionX += 0.3;
 
-        // Brighter wave color
-        const waveColor = Phaser.Display.Color.GetColor(
-            Math.min(255, colorObj.red + 80),
-            Math.min(255, colorObj.green + 80),
-            Math.min(255, colorObj.blue + 80)
-        );
+        // Vertical micro-bobbing
+        this.waterRipples.tilePositionY = Math.sin(time * 0.001) * 3;
 
-        // Foam color (white-ish)
-        const foamColor = Phaser.Display.Color.GetColor(
-            Math.min(255, colorObj.red + 120),
-            Math.min(255, colorObj.green + 120),
-            Math.min(255, colorObj.blue + 120)
-        );
-
+        // Subtle alpha pulsing for more life
         const isNightZone = this.zone.id !== 'shallow-waters';
-        const waveIntensity = isNightZone ? 0.6 : 1.0;
+        const baseAlpha = isNightZone ? 0.2 : 0.35;
+        const pulseAlpha = baseAlpha + Math.sin(time * 0.0008) * 0.05;
+        this.waterRipples.setAlpha(pulseAlpha);
 
-        // === ORGANIC MULTI-FREQUENCY WAVES ===
-        for (let wave = 0; wave < 4; wave++) {
-            const baseY = this.horizonY + 6 + wave * 22;
-            const baseAlpha = (0.4 - wave * 0.08) * waveIntensity;
-            const lineWidth = (2.5 - wave * 0.4) * waveIntensity;
-
-            this.waterSurfaceGraphics.lineStyle(lineWidth, waveColor, baseAlpha);
-            this.waterSurfaceGraphics.beginPath();
-
-            for (let x = 0; x <= width; x += 4) {
-                // Multi-frequency sine combination for organic look
-                const freq1 = Math.sin(x * 0.012 + time * 0.0008 + wave * 0.5);
-                const freq2 = Math.sin(x * 0.025 + time * 0.0015 + wave * 0.3) * 0.5;
-                const freq3 = Math.sin(x * 0.05 + time * 0.002) * 0.25;
-
-                // Amplitude varies along x
-                const ampVariation = 1 + Math.sin(x * 0.003 + time * 0.0003) * 0.3;
-                const amplitude = (3.5 - wave * 0.6) * ampVariation;
-
-                const y = baseY + (freq1 + freq2 + freq3) * amplitude;
-
-                if (x === 0) {
-                    this.waterSurfaceGraphics.moveTo(x, y);
-                } else {
-                    this.waterSurfaceGraphics.lineTo(x, y);
-                }
-            }
-            this.waterSurfaceGraphics.strokePath();
-        }
-
-        // === FOAM HIGHLIGHTS (at wave peaks) ===
-        const foamAlpha = 0.25 * waveIntensity;
-        for (let i = 0; i < 12; i++) {
-            const foamX = ((time * 0.015 + i * 95) % (width + 50)) - 25;
-            const baseY = this.horizonY + 8;
-
-            // Foam follows wave shape
-            const waveOffset = Math.sin(foamX * 0.012 + time * 0.0008) * 2;
-            const foamY = baseY + waveOffset;
-
-            // Varying foam size
-            const foamSize = 2 + Math.sin(time / 400 + i * 1.5) * 1;
-
-            this.waterSurfaceGraphics.fillStyle(foamColor, foamAlpha);
-            this.waterSurfaceGraphics.fillCircle(foamX, foamY, foamSize);
-
-            // Smaller foam dots nearby
-            this.waterSurfaceGraphics.fillStyle(foamColor, foamAlpha * 0.5);
-            this.waterSurfaceGraphics.fillCircle(foamX + 8, foamY + 3, foamSize * 0.6);
-        }
-
-        // === SPARKLES ===
-        const sparkleCount = isNightZone ? 5 : 10;
-        for (let i = 0; i < sparkleCount; i++) {
-            const sparkleX = ((time * 0.022 + i * 150) % (width + 80)) - 40;
-            const sparkleY = this.horizonY + 20 + i * 15;
-            const alpha = 0.4 + Math.sin(time / 200 + i * 2.5) * 0.35;
-
-            this.waterSurfaceGraphics.fillStyle(0xFFFFFF, alpha * waveIntensity);
-            this.waterSurfaceGraphics.fillCircle(sparkleX, sparkleY, 2.5);
-        }
+        // Sun reflection subtle animation
+        const reflectionPulse = 0.9 + Math.sin(time * 0.0006) * 0.1;
+        this.sunReflection.setScale(
+            this.sunReflection.scaleX,
+            this.sunReflection.scaleY * reflectionPulse / (0.9 + Math.sin((time - 16) * 0.0006) * 0.1)
+        );
     }
 
     // ==========================================
@@ -762,8 +697,7 @@ export class MainScene extends Phaser.Scene {
         const { width, height } = this.scale;
 
         this.drawAtmosphere(width, height, time);
-        this.drawBioluminescence(width, height, time);
-        this.drawWaterSurface(width, time);
+        this.updateWaterSurface(time);  // NEW: Asset-based water animation
         this.drawFishingLine();
 
         if (this.currentPhase === 'WAITING') {
