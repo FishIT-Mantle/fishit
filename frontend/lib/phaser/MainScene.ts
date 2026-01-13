@@ -32,10 +32,10 @@ export class MainScene extends Phaser.Scene {
     private skyGradient!: Phaser.GameObjects.Graphics;
     private backgroundLayer!: Phaser.GameObjects.Image | null;
     private atmosphereGraphics!: Phaser.GameObjects.Graphics;
-    private fogGraphics!: Phaser.GameObjects.Graphics;
+    private fogSprite!: Phaser.GameObjects.Image;  // UPDATED: Texture-based fog (no banding)
     private waterGraphics!: Phaser.GameObjects.Graphics;
-    private waterRipples!: Phaser.GameObjects.TileSprite;  // NEW: Asset-based ripples
-    private sunReflection!: Phaser.GameObjects.Image;      // NEW: Sun/moon reflection
+    private waterRipples!: Phaser.GameObjects.TileSprite;  // Asset-based ripples
+    private sunReflection!: Phaser.GameObjects.Image;      // Sun/moon reflection
     private foregroundLayer!: Phaser.GameObjects.Image | null;
 
     // Gameplay
@@ -97,9 +97,8 @@ export class MainScene extends Phaser.Scene {
         this.atmosphereGraphics = this.add.graphics();
         this.atmosphereGraphics.setDepth(2);
 
-        // === LAYER 2.5: FOG (Enhanced) ===
-        this.fogGraphics = this.add.graphics();
-        this.fogGraphics.setDepth(3.7);  // UPDATED: On top of water but behind boat
+        // === LAYER 2.5: FOG (Texture-based - no banding) ===
+        this.createFogTexture(width);
         this.createFog(width);
 
         // === LAYER 3: WATER BASE GRADIENT ===
@@ -204,38 +203,48 @@ export class MainScene extends Phaser.Scene {
     }
 
     // ==========================================
-    // FOG (Enhanced Soft Horizon)
+    // FOG (Texture-based - Smooth, No Banding)
     // ==========================================
 
-    private createFog(width: number) {
+    private createFogTexture(width: number) {
         const [, bottomSkyColor] = this.zone.colors.sky;
-        const [surfaceWaterColor] = this.zone.colors.water;
 
-        // Sky-side fog (above horizon)
-        const skyFogHeight = 120;
-        const skySteps = 30;
-        for (let i = 0; i < skySteps; i++) {
-            const t = i / skySteps;
-            const y = this.horizonY - skyFogHeight + t * skyFogHeight;
-            const h = skyFogHeight / skySteps + 1;
-            const alpha = t * 0.5;
+        // Create a canvas for the gradient texture
+        const fogHeight = 200;
+        const canvas = document.createElement('canvas');
+        canvas.width = 2;  // Minimal width, will be stretched
+        canvas.height = fogHeight;
+        const ctx = canvas.getContext('2d')!;
 
-            this.fogGraphics.fillStyle(bottomSkyColor, alpha);
-            this.fogGraphics.fillRect(0, y, width, h);
+        // Convert hex color to CSS
+        const r = (bottomSkyColor >> 16) & 0xFF;
+        const g = (bottomSkyColor >> 8) & 0xFF;
+        const b = bottomSkyColor & 0xFF;
+
+        // Create smooth vertical gradient (top = opaque, bottom = transparent)
+        const gradient = ctx.createLinearGradient(0, 0, 0, fogHeight);
+        gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0)`);
+        gradient.addColorStop(0.3, `rgba(${r}, ${g}, ${b}, 0.15)`);
+        gradient.addColorStop(0.6, `rgba(${r}, ${g}, ${b}, 0.4)`);
+        gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0.7)`);
+
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 2, fogHeight);
+
+        // Add texture to Phaser
+        if (this.textures.exists('fog_texture')) {
+            this.textures.remove('fog_texture');
         }
+        this.textures.addCanvas('fog_texture', canvas);
+    }
 
-        // Water-side fog (below horizon) - subtle
-        const waterFogHeight = 60;
-        const waterSteps = 15;
-        for (let i = 0; i < waterSteps; i++) {
-            const t = i / waterSteps;
-            const y = this.horizonY + t * waterFogHeight;
-            const h = waterFogHeight / waterSteps + 1;
-            const alpha = (1 - t) * 0.25;
-
-            this.fogGraphics.fillStyle(surfaceWaterColor, alpha);
-            this.fogGraphics.fillRect(0, y, width, h);
-        }
+    private createFog(width: number) {
+        // Create sprite from generated texture
+        this.fogSprite = this.add.image(width / 2, this.horizonY, 'fog_texture');
+        this.fogSprite.setOrigin(0.5, 1);  // Bottom-centered (fog sits above horizon)
+        this.fogSprite.setDisplaySize(width, 200);  // Stretch to full width
+        this.fogSprite.setDepth(3.7);  // On top of water but behind boat
+        this.fogSprite.setAlpha(0.6);  // Adjustable subtlety
     }
 
     // ==========================================
@@ -313,37 +322,54 @@ export class MainScene extends Phaser.Scene {
         const sunX = width * 0.8;
         const sunY = this.horizonY * 0.18;
 
-        // Sun glow (enhanced)
-        for (let i = 3; i > 0; i--) {
-            const glowAlpha = 0.12 + Math.sin(time / 1500) * 0.04;
+        // === SUN GLOW (Soft multi-layer) ===
+        // Outer glow layers with very low alpha
+        for (let i = 4; i > 0; i--) {
+            const glowAlpha = 0.06 + Math.sin(time / 2500) * 0.02;  // Slower, subtler
             this.atmosphereGraphics.fillStyle(0xFFFFCC, glowAlpha / i);
-            this.atmosphereGraphics.fillCircle(sunX, sunY, 50 + i * 25);
+            this.atmosphereGraphics.fillCircle(sunX, sunY, 40 + i * 30);
         }
 
-        this.atmosphereGraphics.fillStyle(0xFFFFF0, 0.4);
-        this.atmosphereGraphics.fillCircle(sunX, sunY, 50);
-        this.atmosphereGraphics.fillStyle(0xFFFFFF, 0.3);
-        this.atmosphereGraphics.fillCircle(sunX, sunY, 35);
+        // Sun core (soft)
+        this.atmosphereGraphics.fillStyle(0xFFFFF0, 0.25);
+        this.atmosphereGraphics.fillCircle(sunX, sunY, 45);
+        this.atmosphereGraphics.fillStyle(0xFFFFFF, 0.15);
+        this.atmosphereGraphics.fillCircle(sunX, sunY, 30);
 
-        // Light rays (enhanced visibility)
+        // === LIGHT RAYS (ADD blend, soft alpha, slow animation) ===
         this.atmosphereGraphics.setBlendMode(Phaser.BlendModes.ADD);
-        for (let i = 0; i < 8; i++) {
-            const angle = -0.7 + i * 0.2 + Math.sin(time / 2000 + i) * 0.04;
-            const rayLength = height * 0.8;
-            const alpha = 0.10 + Math.sin(time / 1500 + i * 0.6) * 0.04;
+
+        const rayCount = 7;
+        for (let i = 0; i < rayCount; i++) {
+            // Very slow rotation/sway
+            const baseAngle = -0.6 + i * 0.18;
+            const slowSway = Math.sin(time / 5000 + i * 0.5) * 0.02;  // Much slower
+            const angle = baseAngle + slowSway;
+
+            const rayLength = height * 0.75;
+
+            // "Breathing" alpha pulse (slow, subtle)
+            const breathCycle = Math.sin(time / 4000 + i * 0.8);  // 4 second cycle
+            const alpha = 0.08 + breathCycle * 0.04;  // Range: 0.04 - 0.12
 
             const endX = sunX + Math.cos(angle) * rayLength;
             const endY = sunY + Math.sin(angle) * rayLength;
 
+            // Ray width at sun vs at end
+            const sunWidth = 20;
+            const endWidth = 80;
+
+            // Draw tapered ray triangle
             this.atmosphereGraphics.fillStyle(0xFFFAE0, alpha);
             this.atmosphereGraphics.beginPath();
-            this.atmosphereGraphics.moveTo(sunX - 25, sunY);
-            this.atmosphereGraphics.lineTo(sunX + 25, sunY);
-            this.atmosphereGraphics.lineTo(endX + 70, endY);
-            this.atmosphereGraphics.lineTo(endX - 70, endY);
+            this.atmosphereGraphics.moveTo(sunX - sunWidth, sunY);
+            this.atmosphereGraphics.lineTo(sunX + sunWidth, sunY);
+            this.atmosphereGraphics.lineTo(endX + endWidth, endY);
+            this.atmosphereGraphics.lineTo(endX - endWidth, endY);
             this.atmosphereGraphics.closePath();
             this.atmosphereGraphics.fillPath();
         }
+
         this.atmosphereGraphics.setBlendMode(Phaser.BlendModes.NORMAL);
     }
 
