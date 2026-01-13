@@ -15,9 +15,19 @@ export interface MainSceneConfig {
     onCatchFail?: () => void;
 }
 
+// Bioluminescence particle type
+interface BioParticle {
+    x: number;
+    y: number;
+    size: number;
+    speed: number;
+    swayOffset: number;
+    alpha: number;
+}
+
 /**
- * MainScene - Enhanced with Game Juice
- * Features: Fog overlay, Moon, Shooting stars, Screen shake, Confetti
+ * MainScene - Enhanced Visual Polish Phase 2
+ * Features: Organic waves, Foam, Bioluminescence, Moon reflection, Enhanced fog
  */
 export class MainScene extends Phaser.Scene {
     private config!: MainSceneConfig;
@@ -30,6 +40,7 @@ export class MainScene extends Phaser.Scene {
     private fogGraphics!: Phaser.GameObjects.Graphics;
     private waterGraphics!: Phaser.GameObjects.Graphics;
     private waterSurfaceGraphics!: Phaser.GameObjects.Graphics;
+    private biolumGraphics!: Phaser.GameObjects.Graphics;
     private foregroundLayer!: Phaser.GameObjects.Image | null;
 
     // Gameplay
@@ -47,8 +58,9 @@ export class MainScene extends Phaser.Scene {
     private strikeIndicator!: Phaser.GameObjects.Text;
     private horizonY: number = 0;
 
-    // Shooting star state
+    // Effects state
     private nextShootingStarTime: number = 0;
+    private bioParticles: BioParticle[] = [];
 
     constructor() {
         super({ key: 'MainScene' });
@@ -87,7 +99,7 @@ export class MainScene extends Phaser.Scene {
         this.atmosphereGraphics = this.add.graphics();
         this.atmosphereGraphics.setDepth(2);
 
-        // === LAYER 2.5: FOG (Soft Horizon) ===
+        // === LAYER 2.5: FOG (Enhanced) ===
         this.fogGraphics = this.add.graphics();
         this.fogGraphics.setDepth(2.5);
         this.createFog(width);
@@ -97,10 +109,15 @@ export class MainScene extends Phaser.Scene {
         this.waterGraphics.setDepth(3);
         this.drawWater(width, height);
 
+        // === LAYER 3.5: BIOLUMINESCENCE ===
+        this.biolumGraphics = this.add.graphics();
+        this.biolumGraphics.setDepth(3.5);
+        this.biolumGraphics.setBlendMode(Phaser.BlendModes.ADD);
+        this.initBioluminescence(width, height);
+
         // === LAYER 4: WATER SURFACE ===
         this.waterSurfaceGraphics = this.add.graphics();
         this.waterSurfaceGraphics.setDepth(4);
-        this.waterSurfaceGraphics.setBlendMode(Phaser.BlendModes.ADD);
 
         // === LAYER 5: BOAT & ROD ===
         this.createBoatAndRod(width, height);
@@ -115,7 +132,7 @@ export class MainScene extends Phaser.Scene {
         this.waitingManager = new WaitingManager(this);
         this.reelingManager = new ReelingManager(this);
 
-        // Initialize shooting star timer
+        // Initialize effects
         this.nextShootingStarTime = this.time.now + Phaser.Math.Between(5000, 15000);
 
         this.setPhase('IDLE');
@@ -193,22 +210,36 @@ export class MainScene extends Phaser.Scene {
     }
 
     // ==========================================
-    // FOG (Soft Horizon)
+    // FOG (Enhanced Soft Horizon)
     // ==========================================
 
     private createFog(width: number) {
         const [, bottomSkyColor] = this.zone.colors.sky;
-        const fogHeight = 80;
+        const [surfaceWaterColor] = this.zone.colors.water;
 
-        // Create gradient fog from transparent to sky color
-        const steps = 20;
-        for (let i = 0; i < steps; i++) {
-            const t = i / steps;
-            const y = this.horizonY - fogHeight + t * fogHeight;
-            const h = fogHeight / steps + 1;
-            const alpha = t * 0.4; // Fade in towards horizon
+        // Sky-side fog (above horizon)
+        const skyFogHeight = 120;
+        const skySteps = 30;
+        for (let i = 0; i < skySteps; i++) {
+            const t = i / skySteps;
+            const y = this.horizonY - skyFogHeight + t * skyFogHeight;
+            const h = skyFogHeight / skySteps + 1;
+            const alpha = t * 0.5;
 
             this.fogGraphics.fillStyle(bottomSkyColor, alpha);
+            this.fogGraphics.fillRect(0, y, width, h);
+        }
+
+        // Water-side fog (below horizon) - subtle
+        const waterFogHeight = 60;
+        const waterSteps = 15;
+        for (let i = 0; i < waterSteps; i++) {
+            const t = i / waterSteps;
+            const y = this.horizonY + t * waterFogHeight;
+            const h = waterFogHeight / waterSteps + 1;
+            const alpha = (1 - t) * 0.25;
+
+            this.fogGraphics.fillStyle(surfaceWaterColor, alpha);
             this.fogGraphics.fillRect(0, y, width, h);
         }
     }
@@ -226,58 +257,96 @@ export class MainScene extends Phaser.Scene {
             this.drawSunRays(width, height, time);
         }
         else if (zoneId === 'reef-zone' || zoneId === 'deep-sea' || zoneId === 'abyssal-trench') {
-            this.drawMoon(width, time);
+            this.drawMoon(width, height, time);
+            this.drawMoonReflection(width, height, time);
             this.drawStars(width, time);
         }
     }
 
-    private drawMoon(width: number, time: number) {
+    private drawMoon(width: number, height: number, time: number) {
         const moonX = width * 0.85;
         const moonY = this.horizonY * 0.15;
-        const moonRadius = 25;
+        const moonRadius = 28;
 
-        // Outer glow (multiple layers)
-        for (let i = 4; i > 0; i--) {
-            const glowAlpha = 0.03 + Math.sin(time / 3000) * 0.01;
+        // Outer glow layers
+        for (let i = 5; i > 0; i--) {
+            const glowAlpha = 0.04 + Math.sin(time / 3000) * 0.015;
             this.atmosphereGraphics.fillStyle(0xE6E6FA, glowAlpha);
-            this.atmosphereGraphics.fillCircle(moonX, moonY, moonRadius + i * 15);
+            this.atmosphereGraphics.fillCircle(moonX, moonY, moonRadius + i * 18);
         }
 
         // Moon body
-        this.atmosphereGraphics.fillStyle(0xFFF8DC, 0.9);
+        this.atmosphereGraphics.fillStyle(0xFFFACD, 0.95);
         this.atmosphereGraphics.fillCircle(moonX, moonY, moonRadius);
 
         // Inner highlight
-        this.atmosphereGraphics.fillStyle(0xFFFFFF, 0.5);
-        this.atmosphereGraphics.fillCircle(moonX - 5, moonY - 5, moonRadius * 0.4);
+        this.atmosphereGraphics.fillStyle(0xFFFFFF, 0.6);
+        this.atmosphereGraphics.fillCircle(moonX - 6, moonY - 6, moonRadius * 0.35);
+    }
+
+    private drawMoonReflection(width: number, height: number, time: number) {
+        const moonX = width * 0.85;
+        const reflectionStartY = this.horizonY + 10;
+        const reflectionHeight = height * 0.35;
+
+        // Vertical shimmer columns
+        const columnCount = 5;
+        for (let c = 0; c < columnCount; c++) {
+            const offsetX = (c - 2) * 8;
+            const shimmerX = moonX + offsetX + Math.sin(time / 800 + c) * 3;
+
+            // Draw reflection segments
+            const segments = 12;
+            for (let i = 0; i < segments; i++) {
+                const t = i / segments;
+                const y = reflectionStartY + t * reflectionHeight;
+                const segHeight = reflectionHeight / segments;
+
+                // Alpha decreases with depth, oscillates for shimmer
+                const baseAlpha = 0.15 * (1 - t * 0.8);
+                const shimmerAlpha = baseAlpha * (0.5 + Math.sin(time / 300 + i * 0.8 + c) * 0.5);
+
+                // Width narrows with depth
+                const segWidth = (4 - c * 0.5) * (1 - t * 0.5);
+
+                this.atmosphereGraphics.fillStyle(0xFFFACD, shimmerAlpha);
+                this.atmosphereGraphics.fillRect(shimmerX - segWidth / 2, y, segWidth, segHeight + 1);
+            }
+        }
     }
 
     private drawSunRays(width: number, height: number, time: number) {
         const sunX = width * 0.8;
-        const sunY = this.horizonY * 0.2;
+        const sunY = this.horizonY * 0.18;
 
-        // Sun glow
-        this.atmosphereGraphics.fillStyle(0xFFFFCC, 0.25 + Math.sin(time / 2000) * 0.08);
-        this.atmosphereGraphics.fillCircle(sunX, sunY, 70);
-        this.atmosphereGraphics.fillStyle(0xFFFFFF, 0.2);
-        this.atmosphereGraphics.fillCircle(sunX, sunY, 45);
+        // Sun glow (enhanced)
+        for (let i = 3; i > 0; i--) {
+            const glowAlpha = 0.12 + Math.sin(time / 1500) * 0.04;
+            this.atmosphereGraphics.fillStyle(0xFFFFCC, glowAlpha / i);
+            this.atmosphereGraphics.fillCircle(sunX, sunY, 50 + i * 25);
+        }
 
-        // Light rays with ADD blend
+        this.atmosphereGraphics.fillStyle(0xFFFFF0, 0.4);
+        this.atmosphereGraphics.fillCircle(sunX, sunY, 50);
+        this.atmosphereGraphics.fillStyle(0xFFFFFF, 0.3);
+        this.atmosphereGraphics.fillCircle(sunX, sunY, 35);
+
+        // Light rays (enhanced visibility)
         this.atmosphereGraphics.setBlendMode(Phaser.BlendModes.ADD);
-        for (let i = 0; i < 6; i++) {
-            const angle = -0.6 + i * 0.25 + Math.sin(time / 2500 + i) * 0.03;
-            const rayLength = height * 0.7;
-            const alpha = 0.06 + Math.sin(time / 1800 + i * 0.5) * 0.03;
+        for (let i = 0; i < 8; i++) {
+            const angle = -0.7 + i * 0.2 + Math.sin(time / 2000 + i) * 0.04;
+            const rayLength = height * 0.8;
+            const alpha = 0.10 + Math.sin(time / 1500 + i * 0.6) * 0.04;
 
             const endX = sunX + Math.cos(angle) * rayLength;
             const endY = sunY + Math.sin(angle) * rayLength;
 
             this.atmosphereGraphics.fillStyle(0xFFFAE0, alpha);
             this.atmosphereGraphics.beginPath();
-            this.atmosphereGraphics.moveTo(sunX - 20, sunY);
-            this.atmosphereGraphics.lineTo(sunX + 20, sunY);
-            this.atmosphereGraphics.lineTo(endX + 60, endY);
-            this.atmosphereGraphics.lineTo(endX - 60, endY);
+            this.atmosphereGraphics.moveTo(sunX - 25, sunY);
+            this.atmosphereGraphics.lineTo(sunX + 25, sunY);
+            this.atmosphereGraphics.lineTo(endX + 70, endY);
+            this.atmosphereGraphics.lineTo(endX - 70, endY);
             this.atmosphereGraphics.closePath();
             this.atmosphereGraphics.fillPath();
         }
@@ -286,54 +355,50 @@ export class MainScene extends Phaser.Scene {
 
     private drawStars(width: number, time: number) {
         const starPositions = [
-            { x: 0.08, y: 0.08, size: 2, twinkleSpeed: 400 },
-            { x: 0.22, y: 0.04, size: 1.5, twinkleSpeed: 500 },
-            { x: 0.35, y: 0.12, size: 2.5, twinkleSpeed: 350 },
-            { x: 0.48, y: 0.06, size: 1.5, twinkleSpeed: 450 },
-            { x: 0.58, y: 0.15, size: 2, twinkleSpeed: 380 },
-            { x: 0.7, y: 0.05, size: 2.5, twinkleSpeed: 320 },
-            { x: 0.12, y: 0.2, size: 1.5, twinkleSpeed: 440 },
-            { x: 0.4, y: 0.18, size: 2, twinkleSpeed: 390 },
-            { x: 0.65, y: 0.22, size: 1.5, twinkleSpeed: 410 },
-            { x: 0.28, y: 0.26, size: 1.5, twinkleSpeed: 430 },
-            { x: 0.52, y: 0.28, size: 2, twinkleSpeed: 380 },
-            { x: 0.75, y: 0.3, size: 1.5, twinkleSpeed: 400 },
+            { x: 0.06, y: 0.06, size: 2, twinkleSpeed: 400 },
+            { x: 0.18, y: 0.03, size: 1.5, twinkleSpeed: 500 },
+            { x: 0.32, y: 0.10, size: 2.5, twinkleSpeed: 350 },
+            { x: 0.45, y: 0.05, size: 1.5, twinkleSpeed: 450 },
+            { x: 0.55, y: 0.14, size: 2, twinkleSpeed: 380 },
+            { x: 0.68, y: 0.04, size: 2.5, twinkleSpeed: 320 },
+            { x: 0.10, y: 0.18, size: 1.5, twinkleSpeed: 440 },
+            { x: 0.38, y: 0.16, size: 2, twinkleSpeed: 390 },
+            { x: 0.62, y: 0.20, size: 1.5, twinkleSpeed: 410 },
+            { x: 0.25, y: 0.24, size: 1.5, twinkleSpeed: 430 },
+            { x: 0.50, y: 0.26, size: 2, twinkleSpeed: 380 },
+            { x: 0.72, y: 0.28, size: 1.5, twinkleSpeed: 400 },
+            { x: 0.15, y: 0.30, size: 1.2, twinkleSpeed: 420 },
+            { x: 0.42, y: 0.32, size: 1.8, twinkleSpeed: 360 },
         ];
 
         for (const star of starPositions) {
             const x = width * star.x;
             const y = this.horizonY * star.y;
-            const twinkle = 0.5 + Math.sin(time / star.twinkleSpeed) * 0.4;
+            const twinkle = 0.5 + Math.sin(time / star.twinkleSpeed) * 0.45;
 
             // Star glow
-            this.atmosphereGraphics.fillStyle(0xFFFFFF, twinkle * 0.25);
-            this.atmosphereGraphics.fillCircle(x, y, star.size * 2.5);
+            this.atmosphereGraphics.fillStyle(0xFFFFFF, twinkle * 0.2);
+            this.atmosphereGraphics.fillCircle(x, y, star.size * 3);
 
             // Star core
             this.atmosphereGraphics.fillStyle(0xFFFFFF, twinkle);
             this.atmosphereGraphics.fillCircle(x, y, star.size);
         }
 
-        // Shooting star logic
         this.updateShootingStar(width, time);
     }
 
     private updateShootingStar(width: number, time: number) {
         if (time < this.nextShootingStarTime) return;
 
-        // Spawn shooting star
         const startX = Phaser.Math.Between(width * 0.3, width * 0.9);
         const startY = Phaser.Math.Between(10, this.horizonY * 0.3);
         const endX = startX - Phaser.Math.Between(100, 200);
         const endY = startY + Phaser.Math.Between(80, 150);
 
-        // Create shooting star line
         const star = this.add.graphics();
         star.setDepth(2);
-        star.lineStyle(2, 0xFFFFFF, 0.8);
-        star.lineBetween(startX, startY, startX, startY);
 
-        // Animate shooting star
         this.tweens.add({
             targets: { progress: 0 },
             progress: 1,
@@ -343,7 +408,6 @@ export class MainScene extends Phaser.Scene {
                 if (p === null) return;
                 star.clear();
 
-                // Trail
                 const trailLength = 0.3;
                 const trailStart = Math.max(0, p - trailLength);
 
@@ -358,8 +422,68 @@ export class MainScene extends Phaser.Scene {
             onComplete: () => star.destroy()
         });
 
-        // Schedule next shooting star
         this.nextShootingStarTime = time + Phaser.Math.Between(15000, 30000);
+    }
+
+    // ==========================================
+    // BIOLUMINESCENCE
+    // ==========================================
+
+    private initBioluminescence(width: number, height: number) {
+        // Only for night zones
+        if (this.zone.id === 'shallow-waters') return;
+
+        const particleCount = this.zone.id === 'abyssal-trench' ? 30 : 20;
+        const waterHeight = height - this.horizonY;
+
+        for (let i = 0; i < particleCount; i++) {
+            this.bioParticles.push({
+                x: Phaser.Math.Between(0, width),
+                y: this.horizonY + Phaser.Math.Between(40, waterHeight - 50),
+                size: Phaser.Math.FloatBetween(1.5, 3.5),
+                speed: Phaser.Math.FloatBetween(0.15, 0.4),
+                swayOffset: Phaser.Math.FloatBetween(0, Math.PI * 2),
+                alpha: Phaser.Math.FloatBetween(0.3, 0.7)
+            });
+        }
+    }
+
+    private drawBioluminescence(width: number, height: number, time: number) {
+        if (this.zone.id === 'shallow-waters') return;
+
+        this.biolumGraphics.clear();
+
+        // Zone-specific colors
+        let glowColor = 0x00FFFF; // Cyan default
+        if (this.zone.id === 'deep-sea') glowColor = 0x20B2AA; // Teal
+        if (this.zone.id === 'abyssal-trench') glowColor = 0x4169E1; // Royal Blue
+
+        for (const p of this.bioParticles) {
+            // Update position (slow rise + sway)
+            p.y -= p.speed;
+            p.x += Math.sin(time / 1500 + p.swayOffset) * 0.3;
+
+            // Reset if above water surface
+            if (p.y < this.horizonY + 30) {
+                p.y = height - 30;
+                p.x = Phaser.Math.Between(0, width);
+            }
+
+            // Wrap horizontally
+            if (p.x < 0) p.x = width;
+            if (p.x > width) p.x = 0;
+
+            // Pulsing alpha
+            const pulseAlpha = p.alpha * (0.6 + Math.sin(time / 800 + p.swayOffset) * 0.4);
+
+            // Glow
+            this.biolumGraphics.fillStyle(glowColor, pulseAlpha * 0.3);
+            this.biolumGraphics.fillCircle(p.x, p.y, p.size * 3);
+
+            // Core
+            this.biolumGraphics.fillStyle(0xFFFFFF, pulseAlpha);
+            this.biolumGraphics.fillCircle(p.x, p.y, p.size);
+        }
     }
 
     // ==========================================
@@ -396,23 +520,45 @@ export class MainScene extends Phaser.Scene {
 
         const [surfaceColor] = this.zone.colors.water;
         const colorObj = Phaser.Display.Color.ValueToColor(surfaceColor);
+
+        // Brighter wave color
         const waveColor = Phaser.Display.Color.GetColor(
-            Math.min(255, colorObj.red + 60),
-            Math.min(255, colorObj.green + 60),
-            Math.min(255, colorObj.blue + 60)
+            Math.min(255, colorObj.red + 80),
+            Math.min(255, colorObj.green + 80),
+            Math.min(255, colorObj.blue + 80)
         );
 
-        // Animated wave lines with ADD blend (set in create)
-        for (let wave = 0; wave < 5; wave++) {
-            const baseY = this.horizonY + 8 + wave * 18;
-            const alpha = 0.35 - wave * 0.06;
-            const amplitude = 3 - wave * 0.4;
+        // Foam color (white-ish)
+        const foamColor = Phaser.Display.Color.GetColor(
+            Math.min(255, colorObj.red + 120),
+            Math.min(255, colorObj.green + 120),
+            Math.min(255, colorObj.blue + 120)
+        );
 
-            this.waterSurfaceGraphics.lineStyle(2 - wave * 0.3, waveColor, alpha);
+        const isNightZone = this.zone.id !== 'shallow-waters';
+        const waveIntensity = isNightZone ? 0.6 : 1.0;
+
+        // === ORGANIC MULTI-FREQUENCY WAVES ===
+        for (let wave = 0; wave < 4; wave++) {
+            const baseY = this.horizonY + 6 + wave * 22;
+            const baseAlpha = (0.4 - wave * 0.08) * waveIntensity;
+            const lineWidth = (2.5 - wave * 0.4) * waveIntensity;
+
+            this.waterSurfaceGraphics.lineStyle(lineWidth, waveColor, baseAlpha);
             this.waterSurfaceGraphics.beginPath();
 
-            for (let x = 0; x <= width; x += 5) {
-                const y = baseY + Math.sin(x * 0.015 + time * 0.0012 + wave * 0.7) * amplitude;
+            for (let x = 0; x <= width; x += 4) {
+                // Multi-frequency sine combination for organic look
+                const freq1 = Math.sin(x * 0.012 + time * 0.0008 + wave * 0.5);
+                const freq2 = Math.sin(x * 0.025 + time * 0.0015 + wave * 0.3) * 0.5;
+                const freq3 = Math.sin(x * 0.05 + time * 0.002) * 0.25;
+
+                // Amplitude varies along x
+                const ampVariation = 1 + Math.sin(x * 0.003 + time * 0.0003) * 0.3;
+                const amplitude = (3.5 - wave * 0.6) * ampVariation;
+
+                const y = baseY + (freq1 + freq2 + freq3) * amplitude;
+
                 if (x === 0) {
                     this.waterSurfaceGraphics.moveTo(x, y);
                 } else {
@@ -422,15 +568,36 @@ export class MainScene extends Phaser.Scene {
             this.waterSurfaceGraphics.strokePath();
         }
 
-        // Sparkles for all zones (more for shallow)
-        const sparkleCount = this.zone.id === 'shallow-waters' ? 8 : 4;
-        for (let i = 0; i < sparkleCount; i++) {
-            const sparkleX = ((time * 0.025 + i * 180) % (width + 100)) - 50;
-            const sparkleY = this.horizonY + 25 + i * 18;
-            const alpha = 0.35 + Math.sin(time / 250 + i * 2) * 0.25;
+        // === FOAM HIGHLIGHTS (at wave peaks) ===
+        const foamAlpha = 0.25 * waveIntensity;
+        for (let i = 0; i < 12; i++) {
+            const foamX = ((time * 0.015 + i * 95) % (width + 50)) - 25;
+            const baseY = this.horizonY + 8;
 
-            this.waterSurfaceGraphics.fillStyle(0xFFFFFF, alpha);
-            this.waterSurfaceGraphics.fillCircle(sparkleX, sparkleY, 2);
+            // Foam follows wave shape
+            const waveOffset = Math.sin(foamX * 0.012 + time * 0.0008) * 2;
+            const foamY = baseY + waveOffset;
+
+            // Varying foam size
+            const foamSize = 2 + Math.sin(time / 400 + i * 1.5) * 1;
+
+            this.waterSurfaceGraphics.fillStyle(foamColor, foamAlpha);
+            this.waterSurfaceGraphics.fillCircle(foamX, foamY, foamSize);
+
+            // Smaller foam dots nearby
+            this.waterSurfaceGraphics.fillStyle(foamColor, foamAlpha * 0.5);
+            this.waterSurfaceGraphics.fillCircle(foamX + 8, foamY + 3, foamSize * 0.6);
+        }
+
+        // === SPARKLES ===
+        const sparkleCount = isNightZone ? 5 : 10;
+        for (let i = 0; i < sparkleCount; i++) {
+            const sparkleX = ((time * 0.022 + i * 150) % (width + 80)) - 40;
+            const sparkleY = this.horizonY + 20 + i * 15;
+            const alpha = 0.4 + Math.sin(time / 200 + i * 2.5) * 0.35;
+
+            this.waterSurfaceGraphics.fillStyle(0xFFFFFF, alpha * waveIntensity);
+            this.waterSurfaceGraphics.fillCircle(sparkleX, sparkleY, 2.5);
         }
     }
 
@@ -544,7 +711,7 @@ export class MainScene extends Phaser.Scene {
     }
 
     // ==========================================
-    // GAME JUICE METHODS
+    // GAME JUICE
     // ==========================================
 
     private shakeCamera(intensity: number = 0.005, duration: number = 200) {
@@ -561,26 +728,26 @@ export class MainScene extends Phaser.Scene {
         const { width, height } = this.scale;
         const centerX = width / 2;
         const centerY = height * 0.6;
-        const colors = [0xFF6B6B, 0x4ECDC4, 0xFFE66D, 0x95E1D3, 0xF38181];
+        const colors = [0xFF6B6B, 0x4ECDC4, 0xFFE66D, 0x95E1D3, 0xF38181, 0x6C5CE7];
 
-        for (let i = 0; i < 30; i++) {
+        for (let i = 0; i < 35; i++) {
             const color = Phaser.Utils.Array.GetRandom(colors);
             const particle = this.add.rectangle(centerX, centerY, 8, 8, color);
             particle.setDepth(15);
 
             const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-            const speed = Phaser.Math.Between(200, 400);
+            const speed = Phaser.Math.Between(180, 420);
             const targetX = centerX + Math.cos(angle) * speed;
-            const targetY = centerY + Math.sin(angle) * speed * 0.6 - 100;
+            const targetY = centerY + Math.sin(angle) * speed * 0.6 - 120;
 
             this.tweens.add({
                 targets: particle,
                 x: targetX,
-                y: targetY + 300,
-                rotation: Phaser.Math.FloatBetween(-3, 3),
+                y: targetY + 350,
+                rotation: Phaser.Math.FloatBetween(-4, 4),
                 alpha: 0,
-                scale: 0.3,
-                duration: Phaser.Math.Between(800, 1200),
+                scale: 0.2,
+                duration: Phaser.Math.Between(900, 1400),
                 ease: 'Quad.easeOut',
                 onComplete: () => particle.destroy()
             });
@@ -595,6 +762,7 @@ export class MainScene extends Phaser.Scene {
         const { width, height } = this.scale;
 
         this.drawAtmosphere(width, height, time);
+        this.drawBioluminescence(width, height, time);
         this.drawWaterSurface(width, time);
         this.drawFishingLine();
 
@@ -689,7 +857,6 @@ export class MainScene extends Phaser.Scene {
         this.waitingManager.stop();
         this.setPhase('STRIKE');
 
-        // GAME JUICE: Screen shake + haptic
         this.shakeCamera(0.008, 250);
         this.triggerHaptic([100, 50, 100]);
 
@@ -728,7 +895,6 @@ export class MainScene extends Phaser.Scene {
         this.reelingManager.stop();
         this.setPhase('CAUGHT');
 
-        // GAME JUICE: Confetti + haptic
         this.spawnConfetti();
         this.triggerHaptic([50, 30, 50, 30, 100]);
 
