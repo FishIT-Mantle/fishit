@@ -1,19 +1,38 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG } from './data';
 
+/**
+ * WaitingManager - Handles the "Waiting for Bite" phase
+ * 
+ * Features:
+ * - Visual "LURE" button that player can tap
+ * - Tap-to-lure: reduces wait time and plays rod twitch animation
+ * - Timer-based fish arrival (simulates VRF delay)
+ * - Glow ring visual feedback
+ */
 export class WaitingManager {
     private scene: Phaser.Scene;
-    private shakeButton!: Phaser.GameObjects.Graphics;
-    private shakeText!: Phaser.GameObjects.Text;
+
+    // UI Elements
+    private lureButton!: Phaser.GameObjects.Graphics;
+    private lureText!: Phaser.GameObjects.Text;
     private glowRing!: Phaser.GameObjects.Graphics;
-    private shakeIntensity: number = 0;
-    private lastMouseX: number = 0;
-    private lastMouseY: number = 0;
+    private timerText!: Phaser.GameObjects.Text;
+
+    // State
     private isActive: boolean = false;
-    private onShakeComplete?: () => void;
+    private waitTimer: number = 0;
+    private maxWaitTime: number = 6000; // 6 seconds max
+    private minWaitTime: number = 2000; // 2 seconds min
+    private lureBonus: number = 500;    // 0.5 seconds per lure tap
+    private lureCooldown: number = 0;
+    private lureCooldownMax: number = 300; // 300ms between taps
 
-    // Visual particles
+    // Visual state
+    private pulseIntensity: number = 0;
 
+    // Callback
+    private onStrike?: () => void;
 
     constructor(scene: Phaser.Scene) {
         this.scene = scene;
@@ -23,145 +42,220 @@ export class WaitingManager {
     private setupVisuals() {
         const { width, height } = this.scene.scale;
         const cx = width / 2;
-        const cy = height / 2;
-        const radius = 80;
+        const cy = height * 0.75;
+        const radius = 70;
 
-        // 1. Glow Ring (Pulse Effect)
+        // Glow Ring
         this.glowRing = this.scene.add.graphics();
         this.glowRing.setDepth(10);
         this.glowRing.setVisible(false);
 
-        // 2. Main Button Circle (Glassmorphism style)
-        this.shakeButton = this.scene.add.graphics();
-        this.shakeButton.fillStyle(GAME_CONFIG.SHAKE.BUTTON_COLOR, 0.15);
-        this.shakeButton.fillCircle(cx, cy, radius);
-        this.shakeButton.lineStyle(2, 0xFFFFFF, 0.5);
-        this.shakeButton.strokeCircle(cx, cy, radius);
-        this.shakeButton.setDepth(11);
-        this.shakeButton.setVisible(false);
+        // Main Button
+        this.lureButton = this.scene.add.graphics();
+        this.lureButton.setDepth(11);
+        this.lureButton.setVisible(false);
 
-        // 3. Text
-        this.shakeText = this.scene.add.text(cx, cy, 'SHAKE', {
-            fontSize: '32px',
-            fontFamily: 'Arial', // Will use custom font if loaded
+        // Button Text
+        this.lureText = this.scene.add.text(cx, cy, 'LURE', {
+            fontSize: '28px',
+            fontFamily: 'Arial',
             fontStyle: 'bold',
             color: '#FFFFFF'
         }).setOrigin(0.5).setDepth(12).setVisible(false);
+
+        // Timer Text (shows remaining time)
+        this.timerText = this.scene.add.text(cx, cy + 60, '', {
+            fontSize: '16px',
+            fontFamily: 'Arial',
+            color: '#FFFFFF'
+        }).setOrigin(0.5).setDepth(12).setVisible(false).setAlpha(0.7);
+
+        // Make button interactive
+        this.lureButton.setInteractive(
+            new Phaser.Geom.Circle(cx, cy, radius),
+            Phaser.Geom.Circle.Contains
+        );
+
+        this.lureButton.on('pointerdown', () => {
+            this.lure();
+        });
     }
 
-    public start(onComplete?: () => void) {
+    public start(onStrike?: () => void) {
         this.isActive = true;
-        this.shakeIntensity = 0;
-        this.onShakeComplete = onComplete;
+        this.onStrike = onStrike;
+
+        // Random wait time
+        this.waitTimer = Phaser.Math.Between(this.minWaitTime, this.maxWaitTime);
+        this.lureCooldown = 0;
+        this.pulseIntensity = 0;
 
         // Show UI
-        this.shakeButton.setVisible(true);
-        this.shakeText.setVisible(true);
+        this.lureButton.setVisible(true);
+        this.lureText.setVisible(true);
         this.glowRing.setVisible(true);
+        this.timerText.setVisible(true);
 
-        // Reset mouse tracking
-        this.lastMouseX = this.scene.input.x;
-        this.lastMouseY = this.scene.input.y;
-
-        // Pulse animation (Idle)
+        // Idle pulse animation
         this.scene.tweens.add({
-            targets: [this.shakeButton, this.shakeText],
-            scale: { from: 1, to: 1.05 },
-            alpha: { from: 0.8, to: 1 },
-            duration: 800,
+            targets: { val: 0 },
+            val: 1,
+            duration: 1000,
             yoyo: true,
             repeat: -1,
-            ease: 'Sine.easeInOut'
+            onUpdate: (tween) => {
+                const val = tween.getValue();
+                if (val !== null) {
+                    this.pulseIntensity = val * 0.3;
+                }
+            }
         });
+    }
+
+    /**
+     * Tap-to-Lure: Called when player taps the lure button
+     * - Reduces wait timer
+     * - Plays rod twitch animation
+     * - Emits splash particles
+     */
+    public lure() {
+        if (!this.isActive || this.lureCooldown > 0) return;
+
+        // Reduce wait time
+        this.waitTimer -= this.lureBonus;
+        if (this.waitTimer < 0) this.waitTimer = 0;
+
+        // Set cooldown
+        this.lureCooldown = this.lureCooldownMax;
+
+        // Visual feedback - button pulse
+        this.pulseIntensity = 1.5;
+        this.scene.tweens.add({
+            targets: { val: this.pulseIntensity },
+            val: 0.3,
+            duration: 200,
+            onUpdate: (tween) => {
+                const val = tween.getValue();
+                if (val !== null) {
+                    this.pulseIntensity = val;
+                }
+            }
+        });
+
+        // Rod twitch animation (find rod in scene)
+        const rod = this.scene.children.getByName('rod') as Phaser.GameObjects.Image;
+        if (rod) {
+            this.scene.tweens.add({
+                targets: rod,
+                rotation: rod.rotation - 0.1,
+                duration: 100,
+                yoyo: true,
+                ease: 'Power2'
+            });
+        }
+
+        // Emit splash at bobber position
+        this.emitSplash();
+
+        // Camera shake for feedback
+        this.scene.cameras.main.shake(50, 0.003);
+
+        // Update text
+        this.lureText.setText('LURE!');
+        this.scene.time.delayedCall(200, () => {
+            if (this.isActive) {
+                this.lureText.setText('LURE');
+            }
+        });
+    }
+
+    private emitSplash() {
+        const { width, height } = this.scene.scale;
+        const splashX = width / 2;
+        const splashY = height * 0.65;
+
+        // Create ripple circles
+        for (let i = 0; i < 2; i++) {
+            const ripple = this.scene.add.circle(splashX, splashY, 5, 0xFFFFFF, 0.6);
+            ripple.setDepth(6.5);
+            this.scene.tweens.add({
+                targets: ripple,
+                scale: 2 + i,
+                alpha: 0,
+                duration: 300,
+                delay: i * 50,
+                onComplete: () => ripple.destroy()
+            });
+        }
     }
 
     public update(time: number, delta: number) {
         if (!this.isActive) return;
 
         const { width, height } = this.scene.scale;
+        const cx = width / 2;
+        const cy = height * 0.75;
+        const radius = 70;
 
-        // Use activePointer to support both mouse and touch
-        const pointer = this.scene.input.activePointer;
-        const mouseX = pointer.x;
-        const mouseY = pointer.y;
-
-        const dx = Math.abs(mouseX - this.lastMouseX);
-        const dy = Math.abs(mouseY - this.lastMouseY);
-        const movement = dx + dy;
-
-        this.lastMouseX = mouseX;
-        this.lastMouseY = mouseY;
-
-        // 2. Accumulate Intensity if moving fast
-        if (movement > 5) {
-            this.shakeIntensity += movement * 0.008; // Increased sensitivity
-
-            // Add subtle camera shake for "feel"
-            if (Math.random() > 0.8) {
-                this.scene.cameras.main.shake(50, 0.005);
-            }
+        // Update cooldown
+        if (this.lureCooldown > 0) {
+            this.lureCooldown -= delta;
         }
 
-        // 3. Decay Intensity automatically
-        this.shakeIntensity *= GAME_CONFIG.SHAKE.DECAY;
+        // Countdown timer
+        this.waitTimer -= delta;
 
-        // Clamp
-        if (this.shakeIntensity > GAME_CONFIG.SHAKE.MAX_INTENSITY) {
-            this.shakeIntensity = GAME_CONFIG.SHAKE.MAX_INTENSITY;
+        // Update timer display
+        const remaining = Math.max(0, this.waitTimer / 1000);
+        this.timerText.setText(`Waiting... ${remaining.toFixed(1)}s`);
+
+        // Check if fish arrived
+        if (this.waitTimer <= 0) {
+            this.onStrike?.();
+            return;
         }
 
-        // 4. Update Visuals based on Intensity
-        // Move UI lower to avoid overlap (height * 0.75)
-        this.updateVisuals(width / 2, height * 0.75);
+        // Update visuals
+        this.updateVisuals(cx, cy, radius);
     }
 
-    private updateVisuals(cx: number, cy: number) {
-        const radius = 80;
-
-        // Update positions
-        this.shakeButton.setPosition(0, 0); // Reset generic pos to draw relative or absolute
-        // Actually graphics are drawn at 0,0 usually, we need to clear and redraw at cx, cy
-
-        // Glow Intensity
-        const alpha = Math.min(0.8, this.shakeIntensity * 0.6); // Increased glow alpha
+    private updateVisuals(cx: number, cy: number, radius: number) {
+        // Clear and redraw
         this.glowRing.clear();
+        this.lureButton.clear();
 
-        // Outer Glow
-        this.glowRing.fillStyle(GAME_CONFIG.SHAKE.RIPPLE_COLOR, alpha * 0.5);
-        this.glowRing.fillCircle(cx, cy, radius + (this.shakeIntensity * 30));
+        // Glow ring
+        const glowAlpha = 0.2 + this.pulseIntensity * 0.3;
+        const glowSize = radius + this.pulseIntensity * 20;
 
-        // Inner Core
-        this.glowRing.fillStyle(0xFFFFFF, alpha);
-        this.glowRing.fillCircle(cx, cy, radius);
+        this.glowRing.fillStyle(GAME_CONFIG.SHAKE.RIPPLE_COLOR, glowAlpha);
+        this.glowRing.fillCircle(cx, cy, glowSize);
 
-        this.shakeButton.clear();
-        this.shakeButton.fillStyle(GAME_CONFIG.SHAKE.BUTTON_COLOR, 0.15 + (this.shakeIntensity * 0.2));
-        this.shakeButton.fillCircle(cx, cy, radius);
-        this.shakeButton.lineStyle(2 + (this.shakeIntensity * 2), 0xFFFFFF, 0.5 + (this.shakeIntensity * 0.5));
-        this.shakeButton.strokeCircle(cx, cy, radius);
+        // Button background
+        const buttonAlpha = 0.15 + this.pulseIntensity * 0.15;
+        this.lureButton.fillStyle(0xFFFFFF, buttonAlpha);
+        this.lureButton.fillCircle(cx, cy, radius);
 
-        // Shake Text Bounce
-        if (this.shakeIntensity > 0.2) {
-            const jitterX = (Math.random() - 0.5) * this.shakeIntensity * 10;
-            const jitterY = (Math.random() - 0.5) * this.shakeIntensity * 10;
-            this.shakeText.setPosition(cx + jitterX, cy + jitterY);
-            this.shakeText.setScale(1 + this.shakeIntensity * 0.2);
-            this.shakeText.setText("SHAKE IT!");
-        } else {
-            this.shakeText.setPosition(cx, cy);
-            this.shakeText.setScale(1);
-            this.shakeText.setText("SHAKE");
-        }
+        // Button border
+        const borderWidth = 2 + this.pulseIntensity * 2;
+        const borderAlpha = 0.5 + this.pulseIntensity * 0.3;
+        this.lureButton.lineStyle(borderWidth, 0xFFFFFF, borderAlpha);
+        this.lureButton.strokeCircle(cx, cy, radius);
+
+        // Update text position
+        this.lureText.setPosition(cx, cy);
+        this.timerText.setPosition(cx, cy + 55);
     }
 
     public stop() {
         this.isActive = false;
-        this.shakeButton.setVisible(false);
-        this.shakeText.setVisible(false);
+        this.lureButton.setVisible(false);
+        this.lureText.setVisible(false);
         this.glowRing.setVisible(false);
+        this.timerText.setVisible(false);
 
-        // Cleanup tweens
-        this.scene.tweens.killTweensOf(this.shakeButton);
-        this.scene.tweens.killTweensOf(this.shakeText);
+        // Kill tweens
+        this.scene.tweens.killTweensOf(this.lureButton);
+        this.scene.tweens.killTweensOf(this.lureText);
     }
 }

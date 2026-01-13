@@ -1,8 +1,8 @@
 import { Button } from "@/components/Button";
-import { Zone } from "@/lib/gameplay/zones";
+import { ZoneConfig } from "@/lib/gameplay/zones";
 
 interface IntroViewProps {
-    zone: Zone;
+    zone: ZoneConfig;
     onStart: () => void;
 }
 

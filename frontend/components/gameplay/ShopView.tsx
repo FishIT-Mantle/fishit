@@ -1,9 +1,9 @@
 import { Button } from "@/components/Button";
-import { Zone } from "@/lib/gameplay/zones";
+import { ZoneConfig } from "@/lib/gameplay/zones";
 import Image from "next/image";
 
 interface ShopViewProps {
-    zone: Zone;
+    zone: ZoneConfig;
     onClose: () => void;
 }
 

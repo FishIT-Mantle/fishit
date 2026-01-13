@@ -1,12 +1,12 @@
 import { Button } from "@/components/Button";
-import { Zone } from "@/lib/gameplay/zones";
+import { ZoneConfig } from "@/lib/gameplay/zones";
 import { useState, useRef, useCallback } from "react";
 import FishingGameWrapper from "./FishingGameWrapper";
 import { FishingGameHandle } from "./FishingGame";
 import { GamePhase } from "@/lib/phaser/MainScene";
 
 interface GameplayViewProps {
-    zone: Zone;
+    zone: ZoneConfig;
     onOpenShop: () => void;
 }
 
@@ -44,6 +44,12 @@ export function GameplayView({ zone, onOpenShop }: GameplayViewProps) {
         }
     }, [gamePhase]);
 
+    const handleLure = useCallback(() => {
+        if (fishingGameRef.current && gamePhase === 'WAITING') {
+            fishingGameRef.current.lure();
+        }
+    }, [gamePhase]);
+
     const handlePhaseChange = useCallback((phase: GamePhase) => {
         setGamePhase(phase);
     }, []);
@@ -65,7 +71,7 @@ export function GameplayView({ zone, onOpenShop }: GameplayViewProps) {
             {/* PHASER GAME LAYER - Behind HUD */}
             <FishingGameWrapper
                 ref={fishingGameRef}
-                backgroundUrl={zone.background}
+                zone={zone}
                 boatUrl="/gameplay/kapal.webp"
                 rodUrl="/gameplay/pancingan.webp"
                 onPhaseChange={handlePhaseChange}
@@ -193,27 +199,33 @@ export function GameplayView({ zone, onOpenShop }: GameplayViewProps) {
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
                         <div className="px-6 py-3 rounded-full bg-black/50 backdrop-blur-md text-white text-lg font-bold animate-pulse">
                             {gamePhase === 'CASTING' && '🎣 Casting...'}
-                            {gamePhase === 'WAITING' && '⏳ Waiting for bite...'}
-                            {gamePhase === 'STRIKE' && '⚡ CLICK NOW!'}
+                            {gamePhase === 'WAITING' && '⏳ Tap LURE to attract fish!'}
+                            {gamePhase === 'STRIKE' && '⚡ FISH ON!'}
                             {gamePhase === 'REELING' && '🎯 Keep the bar on the fish!'}
                         </div>
                     </div>
                 )}
 
-                {/* Bottom HUD: Cast Button */}
-                {showCastButton && (
-                    <div className="mt-auto w-full flex justify-center pb-12 z-20 pointer-events-auto">
+                {/* Bottom HUD: Cast Button or Lure Button */}
+                <div className="mt-auto w-full flex justify-center pb-12 z-20 pointer-events-auto">
+                    {showCastButton ? (
                         <Button
                             onClick={handleCastLine}
                             className="!w-[250px] !h-[64px] !text-xl !font-bold shadow-[0_4px_30px_rgba(84,72,232,0.6)] border-t border-white/20 animate-bounce-subtle !rounded-full"
                         >
                             Cast Line
                         </Button>
-                    </div>
-                )}
+                    ) : gamePhase === 'WAITING' ? (
+                        <Button
+                            onClick={handleLure}
+                            className="!w-[200px] !h-[56px] !text-lg !font-bold shadow-[0_4px_30px_rgba(34,211,238,0.6)] border-t border-white/20 !rounded-full !bg-gradient-to-r !from-cyan-500 !to-blue-500"
+                        >
+                            🎣 LURE
+                        </Button>
+                    ) : null}
+                </div>
 
             </div>
         </div>
     );
 }
-

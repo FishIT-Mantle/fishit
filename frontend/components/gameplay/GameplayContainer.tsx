@@ -3,13 +3,13 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Zone } from "@/lib/gameplay/zones";
+import { ZoneConfig } from "@/lib/gameplay/zones";
 import { IntroView } from "./IntroView";
 import { GameplayView } from "./GameplayView";
 import { ShopView } from "./ShopView";
 
 interface GameplayContainerProps {
-    zone: Zone;
+    zone: ZoneConfig;
 }
 
 type GameState = 'INTRO' | 'PLAYING' | 'SHOP';
@@ -17,19 +17,29 @@ type GameState = 'INTRO' | 'PLAYING' | 'SHOP';
 export default function GameplayContainer({ zone }: GameplayContainerProps) {
     const [gameState, setGameState] = useState<GameState>('INTRO');
 
+    // Generate a simple gradient background for intro based on zone colors
+    const skyColors = zone.colors.sky;
+    const gradientStyle = {
+        background: `linear-gradient(to bottom, #${skyColors[0].toString(16).padStart(6, '0')}, #${skyColors[1].toString(16).padStart(6, '0')})`
+    };
+
     return (
         <div className="relative min-h-screen overflow-hidden bg-[#0D1936] text-white font-sans selection:bg-cyan-500/30">
             {/* --- BACKGROUND LAYER (Only visible in INTRO) --- */}
             {gameState === 'INTRO' && (
-                <div className="absolute inset-0 z-0">
-                    <Image
-                        src={zone.background}
-                        alt={zone.name}
-                        fill
-                        priority
-                        className="object-cover object-center"
-                        quality={100}
-                    />
+                <div className="absolute inset-0 z-0" style={gradientStyle}>
+                    {/* Optional: Zone background image if needed */}
+                    {zone.assets.background && (
+                        <div className="absolute inset-0 flex items-end justify-center">
+                            <Image
+                                src={`/zone/${zone.assets.background}.webp`}
+                                alt={zone.name}
+                                width={1920}
+                                height={600}
+                                className="object-cover object-bottom w-full opacity-60"
+                            />
+                        </div>
+                    )}
                     {/* Overlay for readability */}
                     <div className="absolute inset-0 bg-black/30" />
                 </div>

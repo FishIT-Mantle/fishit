@@ -3,13 +3,15 @@
 import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import Phaser from 'phaser';
 import { MainScene, GamePhase } from '@/lib/phaser/MainScene';
+import { ZoneConfig } from '@/lib/gameplay/zones';
 
 export interface FishingGameHandle {
     castLine: () => void;
+    lure: () => void;
 }
 
 export interface FishingGameProps {
-    backgroundUrl: string;
+    zone: ZoneConfig;
     boatUrl?: string;
     rodUrl?: string;
     onPhaseChange?: (phase: GamePhase) => void;
@@ -23,7 +25,7 @@ const FishingGame = forwardRef<FishingGameHandle, FishingGameProps>((props, ref)
     const sceneRef = useRef<MainScene | null>(null);
 
     const {
-        backgroundUrl,
+        zone,
         boatUrl = '/gameplay/kapal.webp',
         rodUrl = '/gameplay/pancingan.webp',
         onPhaseChange,
@@ -31,11 +33,16 @@ const FishingGame = forwardRef<FishingGameHandle, FishingGameProps>((props, ref)
         onCatchFail
     } = props;
 
-    // Expose castLine method to parent
+    // Expose methods to parent
     useImperativeHandle(ref, () => ({
         castLine: () => {
             if (sceneRef.current) {
                 sceneRef.current.castLine();
+            }
+        },
+        lure: () => {
+            if (sceneRef.current) {
+                sceneRef.current.lure();
             }
         }
     }));
@@ -54,9 +61,8 @@ const FishingGame = forwardRef<FishingGameHandle, FishingGameProps>((props, ref)
             }
 
             init() {
-                // Pass config directly in init instead of relying on restart
                 super.init({
-                    backgroundUrl,
+                    zone,
                     boatUrl,
                     rodUrl,
                     onPhaseChange,
@@ -72,6 +78,7 @@ const FishingGame = forwardRef<FishingGameHandle, FishingGameProps>((props, ref)
             width: window.innerWidth,
             height: window.innerHeight,
             transparent: false,
+            backgroundColor: '#000000',
             physics: {
                 default: 'arcade',
                 arcade: {
@@ -105,7 +112,7 @@ const FishingGame = forwardRef<FishingGameHandle, FishingGameProps>((props, ref)
                 sceneRef.current = null;
             }
         };
-    }, [backgroundUrl, boatUrl, rodUrl, onPhaseChange, onCatchSuccess, onCatchFail]);
+    }, [zone, boatUrl, rodUrl, onPhaseChange, onCatchSuccess, onCatchFail]);
 
     return (
         <div
