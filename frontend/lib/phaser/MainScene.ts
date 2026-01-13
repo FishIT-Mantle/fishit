@@ -180,12 +180,13 @@ export class MainScene extends Phaser.Scene {
             this.backgroundLayer.setAlpha(0.95);
         }
         else if (zoneId === 'abyssal-trench') {
-            // Mountains on LEFT and RIGHT sides at horizon
-            // Asset has mountains at ~40% from top
-            this.backgroundLayer.setOrigin(0.5, 0.4); // 40% from top as anchor
-            const scale = (width * 1.3) / this.backgroundLayer.width;
-            this.backgroundLayer.setScale(scale);
-            this.backgroundLayer.setY(this.horizonY); // At horizon line
+            // Mountains on LEFT and RIGHT sides - touch the water at horizon
+            this.backgroundLayer.setOrigin(0.5, 0.55); // Anchor slightly below center
+            const visualScale = 0.7 * (width / this.backgroundLayer.width);
+            const targetHeight = this.backgroundLayer.height * visualScale;
+            // Wider to ensure mountains touch edges
+            this.backgroundLayer.setDisplaySize(width * 1, targetHeight);
+            this.backgroundLayer.setY(this.horizonY); // Exactly at horizon
             this.backgroundLayer.setAlpha(0.9);
         }
     }
