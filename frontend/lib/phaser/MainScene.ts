@@ -170,20 +170,23 @@ export class MainScene extends Phaser.Scene {
             this.backgroundLayer.setY(this.horizonY + 10);
         }
         else if (zoneId === 'deep-sea') {
-            // Rocks floating in water - position below horizon
-            this.backgroundLayer.setOrigin(0.5, 0.5);
-            const scale = (width * 0.7) / this.backgroundLayer.width;
-            this.backgroundLayer.setScale(scale);
-            this.backgroundLayer.setY(this.horizonY - 30); // Rocks at horizon level
-            this.backgroundLayer.setAlpha(0.9);
+            // Rocks at horizon - wider than screen to compensate for asset padding
+            this.backgroundLayer.setOrigin(0.5, 0.6);
+            const visualScale = 0.8 * (width / this.backgroundLayer.width);
+            const targetHeight = this.backgroundLayer.height * visualScale;
+            // 15% wider to ensure both sides touch edges
+            this.backgroundLayer.setDisplaySize(width * 1.15, targetHeight);
+            this.backgroundLayer.setY(this.horizonY);
+            this.backgroundLayer.setAlpha(0.95);
         }
         else if (zoneId === 'abyssal-trench') {
-            // Mountains on sides - stretch width, positioned at horizon
-            this.backgroundLayer.setOrigin(0.5, 0.5);
-            const scale = (width * 1.2) / this.backgroundLayer.width;
+            // Mountains on LEFT and RIGHT sides at horizon
+            // Asset has mountains at ~40% from top
+            this.backgroundLayer.setOrigin(0.5, 0.4); // 40% from top as anchor
+            const scale = (width * 1.3) / this.backgroundLayer.width;
             this.backgroundLayer.setScale(scale);
-            this.backgroundLayer.setY(this.horizonY);
-            this.backgroundLayer.setAlpha(0.85);
+            this.backgroundLayer.setY(this.horizonY); // At horizon line
+            this.backgroundLayer.setAlpha(0.9);
         }
     }
 
@@ -364,9 +367,10 @@ export class MainScene extends Phaser.Scene {
         this.foregroundLayer.setOrigin(0.5, 1);
         this.foregroundLayer.setDepth(7);
 
-        // Scale to cover width, maintain aspect ratio
-        const scale = width / this.foregroundLayer.width;
-        this.foregroundLayer.setScale(scale * 1.1); // Slightly larger to ensure coverage
+        // Full width, height same as 0.8 scale would give
+        const visualScale = 0.8 * (width / this.foregroundLayer.width);
+        const targetHeight = this.foregroundLayer.height * visualScale;
+        this.foregroundLayer.setDisplaySize(width, targetHeight);
     }
 
     // ==========================================
