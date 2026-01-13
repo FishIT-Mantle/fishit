@@ -16,13 +16,8 @@ export interface MainSceneConfig {
 }
 
 /**
- * MainScene - Phaser Scene with Sandwich Layering
- * 
- * Visual Approach:
- * - Shallow: Bright sky, green mountains at horizon, sun rays, no clouds
- * - Reef: Dark night sky with stars, open ocean
- * - Deep Sea: Twilight, rocks in water area, palm tree frame
- * - Abyssal: Mountains on sides, dark atmosphere
+ * MainScene - Enhanced with Game Juice
+ * Features: Fog overlay, Moon, Shooting stars, Screen shake, Confetti
  */
 export class MainScene extends Phaser.Scene {
     private config!: MainSceneConfig;
@@ -32,6 +27,7 @@ export class MainScene extends Phaser.Scene {
     private skyGradient!: Phaser.GameObjects.Graphics;
     private backgroundLayer!: Phaser.GameObjects.Image | null;
     private atmosphereGraphics!: Phaser.GameObjects.Graphics;
+    private fogGraphics!: Phaser.GameObjects.Graphics;
     private waterGraphics!: Phaser.GameObjects.Graphics;
     private waterSurfaceGraphics!: Phaser.GameObjects.Graphics;
     private foregroundLayer!: Phaser.GameObjects.Image | null;
@@ -50,6 +46,9 @@ export class MainScene extends Phaser.Scene {
     private currentPhase: GamePhase = 'IDLE';
     private strikeIndicator!: Phaser.GameObjects.Text;
     private horizonY: number = 0;
+
+    // Shooting star state
+    private nextShootingStarTime: number = 0;
 
     constructor() {
         super({ key: 'MainScene' });
@@ -76,17 +75,22 @@ export class MainScene extends Phaser.Scene {
 
     create() {
         const { width, height } = this.scale;
-        this.horizonY = height * 0.5; // 50% - horizon at middle
+        this.horizonY = height * 0.5;
 
         // === LAYER 0: SKY ===
         this.createSky(width, height);
 
-        // === LAYER 1: BACKGROUND (Mountains/Rocks) ===
+        // === LAYER 1: BACKGROUND ===
         this.createBackground(width, height);
 
-        // === LAYER 2: ATMOSPHERE (Stars/Clouds/Sun Rays) ===
+        // === LAYER 2: ATMOSPHERE ===
         this.atmosphereGraphics = this.add.graphics();
         this.atmosphereGraphics.setDepth(2);
+
+        // === LAYER 2.5: FOG (Soft Horizon) ===
+        this.fogGraphics = this.add.graphics();
+        this.fogGraphics.setDepth(2.5);
+        this.createFog(width);
 
         // === LAYER 3: WATER ===
         this.waterGraphics = this.add.graphics();
@@ -96,6 +100,7 @@ export class MainScene extends Phaser.Scene {
         // === LAYER 4: WATER SURFACE ===
         this.waterSurfaceGraphics = this.add.graphics();
         this.waterSurfaceGraphics.setDepth(4);
+        this.waterSurfaceGraphics.setBlendMode(Phaser.BlendModes.ADD);
 
         // === LAYER 5: BOAT & ROD ===
         this.createBoatAndRod(width, height);
@@ -109,6 +114,9 @@ export class MainScene extends Phaser.Scene {
         // === MANAGERS ===
         this.waitingManager = new WaitingManager(this);
         this.reelingManager = new ReelingManager(this);
+
+        // Initialize shooting star timer
+        this.nextShootingStarTime = this.time.now + Phaser.Math.Between(5000, 15000);
 
         this.setPhase('IDLE');
         this.events.emit('game-ready');
@@ -124,7 +132,6 @@ export class MainScene extends Phaser.Scene {
         this.skyGradient = this.add.graphics();
         this.skyGradient.setDepth(0);
 
-        // Smooth gradient for entire sky area
         const steps = 50;
         for (let i = 0; i < steps; i++) {
             const t = i / steps;
@@ -145,7 +152,7 @@ export class MainScene extends Phaser.Scene {
     }
 
     // ==========================================
-    // BACKGROUND LAYER (Mountains/Rocks)
+    // BACKGROUND LAYER
     // ==========================================
 
     private createBackground(width: number, height: number) {
@@ -159,40 +166,55 @@ export class MainScene extends Phaser.Scene {
         this.backgroundLayer = this.add.image(width / 2, this.horizonY, bgKey);
         this.backgroundLayer.setDepth(1);
 
-        // Different positioning based on zone
         const zoneId = this.zone.id;
 
         if (zoneId === 'shallow-waters') {
-            // Mountains at horizon - stretch to full width, bottom aligned to horizon
             this.backgroundLayer.setOrigin(0.5, 1);
             const scale = width / this.backgroundLayer.width;
             this.backgroundLayer.setScale(scale);
             this.backgroundLayer.setY(this.horizonY + 10);
         }
         else if (zoneId === 'deep-sea') {
-            // Rocks at horizon - wider than screen to compensate for asset padding
             this.backgroundLayer.setOrigin(0.5, 0.6);
             const visualScale = 0.8 * (width / this.backgroundLayer.width);
             const targetHeight = this.backgroundLayer.height * visualScale;
-            // 15% wider to ensure both sides touch edges
             this.backgroundLayer.setDisplaySize(width * 1.15, targetHeight);
             this.backgroundLayer.setY(this.horizonY);
             this.backgroundLayer.setAlpha(0.95);
         }
         else if (zoneId === 'abyssal-trench') {
-            // Mountains on LEFT and RIGHT sides - touch the water at horizon
-            this.backgroundLayer.setOrigin(0.5, 0.55); // Anchor slightly below center
+            this.backgroundLayer.setOrigin(0.5, 0.55);
             const visualScale = 0.7 * (width / this.backgroundLayer.width);
             const targetHeight = this.backgroundLayer.height * visualScale;
-            // Wider to ensure mountains touch edges
             this.backgroundLayer.setDisplaySize(width * 1, targetHeight);
-            this.backgroundLayer.setY(this.horizonY); // Exactly at horizon
+            this.backgroundLayer.setY(this.horizonY);
             this.backgroundLayer.setAlpha(0.9);
         }
     }
 
     // ==========================================
-    // ATMOSPHERE (Stars/Sun Rays)
+    // FOG (Soft Horizon)
+    // ==========================================
+
+    private createFog(width: number) {
+        const [, bottomSkyColor] = this.zone.colors.sky;
+        const fogHeight = 80;
+
+        // Create gradient fog from transparent to sky color
+        const steps = 20;
+        for (let i = 0; i < steps; i++) {
+            const t = i / steps;
+            const y = this.horizonY - fogHeight + t * fogHeight;
+            const h = fogHeight / steps + 1;
+            const alpha = t * 0.4; // Fade in towards horizon
+
+            this.fogGraphics.fillStyle(bottomSkyColor, alpha);
+            this.fogGraphics.fillRect(0, y, width, h);
+        }
+    }
+
+    // ==========================================
+    // ATMOSPHERE (Stars/Moon/Sun Rays)
     // ==========================================
 
     private drawAtmosphere(width: number, height: number, time: number) {
@@ -201,13 +223,33 @@ export class MainScene extends Phaser.Scene {
         const zoneId = this.zone.id;
 
         if (zoneId === 'shallow-waters' && this.zone.assets.sunRays) {
-            // SUN RAYS for bright day
             this.drawSunRays(width, height, time);
         }
         else if (zoneId === 'reef-zone' || zoneId === 'deep-sea' || zoneId === 'abyssal-trench') {
-            // STARS for night/dark zones
+            this.drawMoon(width, time);
             this.drawStars(width, time);
         }
+    }
+
+    private drawMoon(width: number, time: number) {
+        const moonX = width * 0.85;
+        const moonY = this.horizonY * 0.15;
+        const moonRadius = 25;
+
+        // Outer glow (multiple layers)
+        for (let i = 4; i > 0; i--) {
+            const glowAlpha = 0.03 + Math.sin(time / 3000) * 0.01;
+            this.atmosphereGraphics.fillStyle(0xE6E6FA, glowAlpha);
+            this.atmosphereGraphics.fillCircle(moonX, moonY, moonRadius + i * 15);
+        }
+
+        // Moon body
+        this.atmosphereGraphics.fillStyle(0xFFF8DC, 0.9);
+        this.atmosphereGraphics.fillCircle(moonX, moonY, moonRadius);
+
+        // Inner highlight
+        this.atmosphereGraphics.fillStyle(0xFFFFFF, 0.5);
+        this.atmosphereGraphics.fillCircle(moonX - 5, moonY - 5, moonRadius * 0.4);
     }
 
     private drawSunRays(width: number, height: number, time: number) {
@@ -215,27 +257,27 @@ export class MainScene extends Phaser.Scene {
         const sunY = this.horizonY * 0.2;
 
         // Sun glow
-        this.atmosphereGraphics.fillStyle(0xFFFFCC, 0.2 + Math.sin(time / 2000) * 0.05);
-        this.atmosphereGraphics.fillCircle(sunX, sunY, 60);
-        this.atmosphereGraphics.fillStyle(0xFFFFFF, 0.15);
-        this.atmosphereGraphics.fillCircle(sunX, sunY, 40);
+        this.atmosphereGraphics.fillStyle(0xFFFFCC, 0.25 + Math.sin(time / 2000) * 0.08);
+        this.atmosphereGraphics.fillCircle(sunX, sunY, 70);
+        this.atmosphereGraphics.fillStyle(0xFFFFFF, 0.2);
+        this.atmosphereGraphics.fillCircle(sunX, sunY, 45);
 
-        // Light rays
+        // Light rays with ADD blend
         this.atmosphereGraphics.setBlendMode(Phaser.BlendModes.ADD);
-        for (let i = 0; i < 5; i++) {
-            const angle = -0.5 + i * 0.25 + Math.sin(time / 3000 + i) * 0.02;
-            const rayLength = height * 0.6;
-            const alpha = 0.04 + Math.sin(time / 2000 + i * 0.5) * 0.02;
+        for (let i = 0; i < 6; i++) {
+            const angle = -0.6 + i * 0.25 + Math.sin(time / 2500 + i) * 0.03;
+            const rayLength = height * 0.7;
+            const alpha = 0.06 + Math.sin(time / 1800 + i * 0.5) * 0.03;
 
             const endX = sunX + Math.cos(angle) * rayLength;
             const endY = sunY + Math.sin(angle) * rayLength;
 
             this.atmosphereGraphics.fillStyle(0xFFFAE0, alpha);
             this.atmosphereGraphics.beginPath();
-            this.atmosphereGraphics.moveTo(sunX - 15, sunY);
-            this.atmosphereGraphics.lineTo(sunX + 15, sunY);
-            this.atmosphereGraphics.lineTo(endX + 50, endY);
-            this.atmosphereGraphics.lineTo(endX - 50, endY);
+            this.atmosphereGraphics.moveTo(sunX - 20, sunY);
+            this.atmosphereGraphics.lineTo(sunX + 20, sunY);
+            this.atmosphereGraphics.lineTo(endX + 60, endY);
+            this.atmosphereGraphics.lineTo(endX - 60, endY);
             this.atmosphereGraphics.closePath();
             this.atmosphereGraphics.fillPath();
         }
@@ -243,39 +285,81 @@ export class MainScene extends Phaser.Scene {
     }
 
     private drawStars(width: number, time: number) {
-        // Create twinkling stars for night sky
         const starPositions = [
-            { x: 0.1, y: 0.1, size: 2, twinkleSpeed: 400 },
-            { x: 0.25, y: 0.05, size: 1.5, twinkleSpeed: 500 },
-            { x: 0.35, y: 0.15, size: 2.5, twinkleSpeed: 350 },
-            { x: 0.5, y: 0.08, size: 1.5, twinkleSpeed: 450 },
-            { x: 0.6, y: 0.18, size: 2, twinkleSpeed: 380 },
-            { x: 0.72, y: 0.06, size: 3, twinkleSpeed: 320 },
-            { x: 0.8, y: 0.12, size: 1.5, twinkleSpeed: 420 },
-            { x: 0.88, y: 0.03, size: 2, twinkleSpeed: 360 },
-            { x: 0.15, y: 0.22, size: 1.5, twinkleSpeed: 440 },
-            { x: 0.45, y: 0.2, size: 2, twinkleSpeed: 390 },
-            { x: 0.68, y: 0.25, size: 1.5, twinkleSpeed: 410 },
-            { x: 0.92, y: 0.2, size: 2.5, twinkleSpeed: 370 },
-            { x: 0.3, y: 0.28, size: 1.5, twinkleSpeed: 430 },
-            { x: 0.55, y: 0.3, size: 2, twinkleSpeed: 380 },
-            { x: 0.78, y: 0.32, size: 1.5, twinkleSpeed: 400 },
+            { x: 0.08, y: 0.08, size: 2, twinkleSpeed: 400 },
+            { x: 0.22, y: 0.04, size: 1.5, twinkleSpeed: 500 },
+            { x: 0.35, y: 0.12, size: 2.5, twinkleSpeed: 350 },
+            { x: 0.48, y: 0.06, size: 1.5, twinkleSpeed: 450 },
+            { x: 0.58, y: 0.15, size: 2, twinkleSpeed: 380 },
+            { x: 0.7, y: 0.05, size: 2.5, twinkleSpeed: 320 },
+            { x: 0.12, y: 0.2, size: 1.5, twinkleSpeed: 440 },
+            { x: 0.4, y: 0.18, size: 2, twinkleSpeed: 390 },
+            { x: 0.65, y: 0.22, size: 1.5, twinkleSpeed: 410 },
+            { x: 0.28, y: 0.26, size: 1.5, twinkleSpeed: 430 },
+            { x: 0.52, y: 0.28, size: 2, twinkleSpeed: 380 },
+            { x: 0.75, y: 0.3, size: 1.5, twinkleSpeed: 400 },
         ];
 
         for (const star of starPositions) {
             const x = width * star.x;
             const y = this.horizonY * star.y;
-            const twinkle = 0.4 + Math.sin(time / star.twinkleSpeed) * 0.4;
-            const alpha = twinkle;
+            const twinkle = 0.5 + Math.sin(time / star.twinkleSpeed) * 0.4;
 
             // Star glow
-            this.atmosphereGraphics.fillStyle(0xFFFFFF, alpha * 0.3);
-            this.atmosphereGraphics.fillCircle(x, y, star.size * 2);
+            this.atmosphereGraphics.fillStyle(0xFFFFFF, twinkle * 0.25);
+            this.atmosphereGraphics.fillCircle(x, y, star.size * 2.5);
 
             // Star core
-            this.atmosphereGraphics.fillStyle(0xFFFFFF, alpha);
+            this.atmosphereGraphics.fillStyle(0xFFFFFF, twinkle);
             this.atmosphereGraphics.fillCircle(x, y, star.size);
         }
+
+        // Shooting star logic
+        this.updateShootingStar(width, time);
+    }
+
+    private updateShootingStar(width: number, time: number) {
+        if (time < this.nextShootingStarTime) return;
+
+        // Spawn shooting star
+        const startX = Phaser.Math.Between(width * 0.3, width * 0.9);
+        const startY = Phaser.Math.Between(10, this.horizonY * 0.3);
+        const endX = startX - Phaser.Math.Between(100, 200);
+        const endY = startY + Phaser.Math.Between(80, 150);
+
+        // Create shooting star line
+        const star = this.add.graphics();
+        star.setDepth(2);
+        star.lineStyle(2, 0xFFFFFF, 0.8);
+        star.lineBetween(startX, startY, startX, startY);
+
+        // Animate shooting star
+        this.tweens.add({
+            targets: { progress: 0 },
+            progress: 1,
+            duration: 400,
+            onUpdate: (tween) => {
+                const p = tween.getValue() as number;
+                if (p === null) return;
+                star.clear();
+
+                // Trail
+                const trailLength = 0.3;
+                const trailStart = Math.max(0, p - trailLength);
+
+                const x1 = Phaser.Math.Linear(startX, endX, trailStart);
+                const y1 = Phaser.Math.Linear(startY, endY, trailStart);
+                const x2 = Phaser.Math.Linear(startX, endX, p);
+                const y2 = Phaser.Math.Linear(startY, endY, p);
+
+                star.lineStyle(2, 0xFFFFFF, 0.8 * (1 - p));
+                star.lineBetween(x1, y1, x2, y2);
+            },
+            onComplete: () => star.destroy()
+        });
+
+        // Schedule next shooting star
+        this.nextShootingStarTime = time + Phaser.Math.Between(15000, 30000);
     }
 
     // ==========================================
@@ -288,8 +372,7 @@ export class MainScene extends Phaser.Scene {
 
         this.waterGraphics.clear();
 
-        // Gradient from surface to deep
-        const steps = 40;
+        const steps = 50;
         for (let i = 0; i < steps; i++) {
             const t = i / steps;
             const y = this.horizonY + t * waterHeight;
@@ -314,22 +397,22 @@ export class MainScene extends Phaser.Scene {
         const [surfaceColor] = this.zone.colors.water;
         const colorObj = Phaser.Display.Color.ValueToColor(surfaceColor);
         const waveColor = Phaser.Display.Color.GetColor(
-            Math.min(255, colorObj.red + 40),
-            Math.min(255, colorObj.green + 40),
-            Math.min(255, colorObj.blue + 40)
+            Math.min(255, colorObj.red + 60),
+            Math.min(255, colorObj.green + 60),
+            Math.min(255, colorObj.blue + 60)
         );
 
-        // Draw subtle wave lines at horizon
-        for (let wave = 0; wave < 4; wave++) {
-            const baseY = this.horizonY + 5 + wave * 15;
-            const alpha = 0.2 - wave * 0.04;
-            const amplitude = 2 - wave * 0.3;
+        // Animated wave lines with ADD blend (set in create)
+        for (let wave = 0; wave < 5; wave++) {
+            const baseY = this.horizonY + 8 + wave * 18;
+            const alpha = 0.35 - wave * 0.06;
+            const amplitude = 3 - wave * 0.4;
 
-            this.waterSurfaceGraphics.lineStyle(1.5 - wave * 0.2, waveColor, alpha);
+            this.waterSurfaceGraphics.lineStyle(2 - wave * 0.3, waveColor, alpha);
             this.waterSurfaceGraphics.beginPath();
 
-            for (let x = 0; x <= width; x += 6) {
-                const y = baseY + Math.sin(x * 0.02 + time * 0.001 + wave * 0.5) * amplitude;
+            for (let x = 0; x <= width; x += 5) {
+                const y = baseY + Math.sin(x * 0.015 + time * 0.0012 + wave * 0.7) * amplitude;
                 if (x === 0) {
                     this.waterSurfaceGraphics.moveTo(x, y);
                 } else {
@@ -339,21 +422,20 @@ export class MainScene extends Phaser.Scene {
             this.waterSurfaceGraphics.strokePath();
         }
 
-        // Subtle light reflections (only for shallow, less for others)
-        if (this.zone.id === 'shallow-waters') {
-            for (let i = 0; i < 5; i++) {
-                const sparkleX = ((time * 0.02 + i * 200) % (width + 100)) - 50;
-                const sparkleY = this.horizonY + 30 + i * 20;
-                const alpha = 0.2 + Math.sin(time / 300 + i * 2) * 0.15;
+        // Sparkles for all zones (more for shallow)
+        const sparkleCount = this.zone.id === 'shallow-waters' ? 8 : 4;
+        for (let i = 0; i < sparkleCount; i++) {
+            const sparkleX = ((time * 0.025 + i * 180) % (width + 100)) - 50;
+            const sparkleY = this.horizonY + 25 + i * 18;
+            const alpha = 0.35 + Math.sin(time / 250 + i * 2) * 0.25;
 
-                this.waterSurfaceGraphics.fillStyle(0xFFFFFF, alpha);
-                this.waterSurfaceGraphics.fillCircle(sparkleX, sparkleY, 1.5);
-            }
+            this.waterSurfaceGraphics.fillStyle(0xFFFFFF, alpha);
+            this.waterSurfaceGraphics.fillCircle(sparkleX, sparkleY, 2);
         }
     }
 
     // ==========================================
-    // FOREGROUND (Palm Trees Frame)
+    // FOREGROUND
     // ==========================================
 
     private createForeground(width: number, height: number) {
@@ -368,7 +450,6 @@ export class MainScene extends Phaser.Scene {
         this.foregroundLayer.setOrigin(0.5, 1);
         this.foregroundLayer.setDepth(7);
 
-        // Full width, height same as 0.8 scale would give
         const visualScale = 0.8 * (width / this.foregroundLayer.width);
         const targetHeight = this.foregroundLayer.height * visualScale;
         this.foregroundLayer.setDisplaySize(width, targetHeight);
@@ -382,7 +463,6 @@ export class MainScene extends Phaser.Scene {
         this.fishingLine = this.add.graphics();
         this.fishingLine.setDepth(5);
 
-        // Boat
         this.boat = this.add.image(width / 2, height + GAME_CONFIG.BOAT.Y_OFFSET, 'boat');
         this.boat.setOrigin(0.5, 1);
         const boatTargetWidth = width * GAME_CONFIG.BOAT.SCALE;
@@ -390,7 +470,6 @@ export class MainScene extends Phaser.Scene {
         this.boat.setScale(boatScale);
         this.boat.setDepth(5);
 
-        // Rod
         const rodX = width / 2 + GAME_CONFIG.ROD.X_OFFSET;
         const rodY = height + GAME_CONFIG.ROD.Y_OFFSET;
         this.rod = this.add.image(rodX, rodY, 'rod');
@@ -401,12 +480,10 @@ export class MainScene extends Phaser.Scene {
         this.rod.setRotation(GAME_CONFIG.ROD.ANGLE);
         this.rod.setDepth(5.5);
 
-        // Bobber
         this.bobber = this.add.graphics();
         this.bobber.setDepth(5.5);
         this.bobber.setVisible(false);
 
-        // Animations
         this.tweens.add({
             targets: this.boat,
             y: this.boat.y + GAME_CONFIG.BOAT.BOB_Y,
@@ -467,6 +544,50 @@ export class MainScene extends Phaser.Scene {
     }
 
     // ==========================================
+    // GAME JUICE METHODS
+    // ==========================================
+
+    private shakeCamera(intensity: number = 0.005, duration: number = 200) {
+        this.cameras.main.shake(duration, intensity);
+    }
+
+    private triggerHaptic(pattern: number | number[]) {
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+            navigator.vibrate(pattern);
+        }
+    }
+
+    private spawnConfetti() {
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+        const centerY = height * 0.6;
+        const colors = [0xFF6B6B, 0x4ECDC4, 0xFFE66D, 0x95E1D3, 0xF38181];
+
+        for (let i = 0; i < 30; i++) {
+            const color = Phaser.Utils.Array.GetRandom(colors);
+            const particle = this.add.rectangle(centerX, centerY, 8, 8, color);
+            particle.setDepth(15);
+
+            const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+            const speed = Phaser.Math.Between(200, 400);
+            const targetX = centerX + Math.cos(angle) * speed;
+            const targetY = centerY + Math.sin(angle) * speed * 0.6 - 100;
+
+            this.tweens.add({
+                targets: particle,
+                x: targetX,
+                y: targetY + 300,
+                rotation: Phaser.Math.FloatBetween(-3, 3),
+                alpha: 0,
+                scale: 0.3,
+                duration: Phaser.Math.Between(800, 1200),
+                ease: 'Quad.easeOut',
+                onComplete: () => particle.destroy()
+            });
+        }
+    }
+
+    // ==========================================
     // UPDATE
     // ==========================================
 
@@ -492,15 +613,15 @@ export class MainScene extends Phaser.Scene {
     // ==========================================
 
     private playSplash(x: number, y: number) {
-        for (let i = 0; i < 3; i++) {
-            const splash = this.add.circle(x, y, 4, 0xFFFFFF);
+        for (let i = 0; i < 4; i++) {
+            const splash = this.add.circle(x, y, 5, 0xFFFFFF, 0.8);
             splash.setDepth(5.5);
             this.tweens.add({
                 targets: splash,
-                scale: 2 + i,
+                scale: 2.5 + i,
                 alpha: 0,
-                duration: 350 + i * 80,
-                delay: i * 40,
+                duration: 400 + i * 100,
+                delay: i * 50,
                 onComplete: () => splash.destroy()
             });
         }
@@ -542,6 +663,7 @@ export class MainScene extends Phaser.Scene {
             ease: 'Back.easeOut',
             onComplete: () => {
                 this.playSplash(targetX, targetY);
+                this.triggerHaptic(30);
                 this.time.delayedCall(400, () => this.startWaiting());
             }
         });
@@ -549,6 +671,7 @@ export class MainScene extends Phaser.Scene {
 
     public lure() {
         if (this.currentPhase !== 'WAITING') return;
+        this.triggerHaptic(50);
         this.waitingManager.lure();
     }
 
@@ -566,13 +689,17 @@ export class MainScene extends Phaser.Scene {
         this.waitingManager.stop();
         this.setPhase('STRIKE');
 
+        // GAME JUICE: Screen shake + haptic
+        this.shakeCamera(0.008, 250);
+        this.triggerHaptic([100, 50, 100]);
+
         this.strikeIndicator.setVisible(true);
         this.strikeIndicator.setAlpha(0);
         this.tweens.add({
             targets: this.strikeIndicator,
             alpha: 1,
-            scale: { from: 0.5, to: 1.2 },
-            duration: 200,
+            scale: { from: 0.5, to: 1.3 },
+            duration: 180,
             yoyo: true,
             repeat: 3,
             onComplete: () => {
@@ -601,6 +728,10 @@ export class MainScene extends Phaser.Scene {
         this.reelingManager.stop();
         this.setPhase('CAUGHT');
 
+        // GAME JUICE: Confetti + haptic
+        this.spawnConfetti();
+        this.triggerHaptic([50, 30, 50, 30, 100]);
+
         const fish = FISH_DATA[0];
         this.bobber.setVisible(false);
         this.config.onCatchSuccess?.({ name: fish.name, rarity: fish.rarity });
@@ -612,6 +743,7 @@ export class MainScene extends Phaser.Scene {
         this.reelingManager.stop();
         this.setPhase('FAILED');
 
+        this.triggerHaptic([200]);
         this.bobber.setVisible(false);
         this.config.onCatchFail?.();
 

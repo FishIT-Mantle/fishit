@@ -44,15 +44,15 @@ export const ZONES: Record<string, ZoneConfig> = {
         name: 'Shallow Waters',
         description: 'The ocean calls. Are you ready to cast your line?',
         assets: {
-            background: 'mountains_shallow',    // loads /zone/mountains_shallow.webp
+            background: 'mountains_shallow',
             foreground: null,
-            clouds: 'cloud_fluffy',             // loads /zone/cloud_fluffy.webp
-            ripples: 'water_ripples',           // loads /zone/water_ripples.webp
+            clouds: 'cloud_fluffy',
+            ripples: 'water_ripples',
             sunRays: true
         },
         colors: {
-            sky: [0x0099FF, 0xA6E4FF],          // Bright blue sky
-            water: [0x00C2FF, 0x00589F]         // Cyan to deep blue
+            sky: [0x4FD3FF, 0x87CEEB],          // Bright cyan to sky blue
+            water: [0x00B4D8, 0x005099]         // Vivid cyan to deep blue (high contrast)
         }
     },
     'reef-zone': {
@@ -60,15 +60,15 @@ export const ZONES: Record<string, ZoneConfig> = {
         name: 'Reef Zone',
         description: 'Balanced drop rates. Essential for upgrades.',
         assets: {
-            background: null,                   // Open ocean - no background
+            background: null,
             foreground: null,
             clouds: 'cloud_fluffy',
             ripples: 'water_ripples',
             sunRays: false
         },
         colors: {
-            sky: [0x0B1026, 0x2B3266],          // Dark purple night sky
-            water: [0x1E3A8A, 0x0F172A]         // Deep ocean blue
+            sky: [0x0F0C29, 0x302B63],          // Deep purple night sky
+            water: [0x1E3A8A, 0x020617]         // Navy to almost black (high contrast)
         }
     },
     'deep-sea': {
@@ -76,15 +76,15 @@ export const ZONES: Record<string, ZoneConfig> = {
         name: 'Deep Sea',
         description: 'Home of the Whales. Increased Epic chance.',
         assets: {
-            background: 'rocks_deep',           // loads /zone/rocks_deep.webp
-            foreground: 'palm_trees',           // loads /zone/palm_trees.webp (frame)
+            background: 'rocks_deep',
+            foreground: 'palm_trees',
             clouds: 'cloud_fluffy',
             ripples: 'water_ripples',
             sunRays: false
         },
         colors: {
-            sky: [0x1A2E35, 0x2C5F66],          // Teal twilight
-            water: [0x0F282F, 0x06181C]         // Dark teal depths
+            sky: [0x1A2E35, 0x3A6073],          // Teal twilight (brighter bottom)
+            water: [0x0F4C5C, 0x020617]         // Teal surface to black depths
         }
     },
     'abyssal-trench': {
@@ -92,7 +92,7 @@ export const ZONES: Record<string, ZoneConfig> = {
         name: 'Abyssal Trench',
         description: 'The only source of Legendary Fish.',
         assets: {
-            background: 'mountains_abyssal',    // loads /zone/mountains_abyssal.webp
+            background: 'mountains_abyssal',
             foreground: null,
             clouds: 'cloud_fluffy',
             ripples: 'water_ripples',
@@ -100,7 +100,7 @@ export const ZONES: Record<string, ZoneConfig> = {
         },
         colors: {
             sky: [0x2C3E50, 0x4CA1AF],          // Slate to teal gradient
-            water: [0x141E30, 0x243B55]         // Near-black ocean
+            water: [0x0D1B2A, 0x010409]         // Dark navy to pure black
         }
     }
 };
