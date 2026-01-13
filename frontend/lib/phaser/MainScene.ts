@@ -322,55 +322,70 @@ export class MainScene extends Phaser.Scene {
         const sunX = width * 0.8;
         const sunY = this.horizonY * 0.18;
 
-        // === SUN GLOW (Soft multi-layer) ===
-        // Outer glow layers with very low alpha
-        for (let i = 4; i > 0; i--) {
-            const glowAlpha = 0.06 + Math.sin(time / 2500) * 0.02;  // Slower, subtler
-            this.atmosphereGraphics.fillStyle(0xFFFFCC, glowAlpha / i);
-            this.atmosphereGraphics.fillCircle(sunX, sunY, 40 + i * 30);
+        // === SUN GLOW (Very soft multi-layer) ===
+        for (let i = 5; i > 0; i--) {
+            const glowAlpha = 0.04 + Math.sin(time / 3000) * 0.015;
+            this.atmosphereGraphics.fillStyle(0xFFFFF0, glowAlpha / i);
+            this.atmosphereGraphics.fillCircle(sunX, sunY, 35 + i * 25);
         }
 
-        // Sun core (soft)
-        this.atmosphereGraphics.fillStyle(0xFFFFF0, 0.25);
-        this.atmosphereGraphics.fillCircle(sunX, sunY, 45);
-        this.atmosphereGraphics.fillStyle(0xFFFFFF, 0.15);
-        this.atmosphereGraphics.fillCircle(sunX, sunY, 30);
+        // Sun core (soft, not harsh)
+        this.atmosphereGraphics.fillStyle(0xFFFFF0, 0.2);
+        this.atmosphereGraphics.fillCircle(sunX, sunY, 40);
+        this.atmosphereGraphics.fillStyle(0xFFFFFF, 0.12);
+        this.atmosphereGraphics.fillCircle(sunX, sunY, 28);
 
-        // === LIGHT RAYS (ADD blend, soft alpha, slow animation) ===
+        // === GOD RAYS (Soft, gradient-like, breathing) ===
         this.atmosphereGraphics.setBlendMode(Phaser.BlendModes.ADD);
 
-        const rayCount = 7;
+        const rayCount = 6;
+
+        // Global breathing cycle (all rays breathe together + individual variation)
+        const globalBreath = Math.sin(time / 5000) * 0.5 + 0.5;  // 0 to 1
+
         for (let i = 0; i < rayCount; i++) {
-            // Very slow rotation/sway
-            const baseAngle = -0.6 + i * 0.18;
-            const slowSway = Math.sin(time / 5000 + i * 0.5) * 0.02;  // Much slower
-            const angle = baseAngle + slowSway;
+            // Very slow, subtle wobble (±3 degrees max)
+            const baseAngle = -0.5 + i * 0.2;
+            const wobble = Math.sin(time / 8000 + i * 1.2) * 0.05;  // Very slow wobble
+            const angle = baseAngle + wobble;
 
-            const rayLength = height * 0.75;
+            const rayLength = height * 0.7;
 
-            // "Breathing" alpha pulse (slow, subtle)
-            const breathCycle = Math.sin(time / 4000 + i * 0.8);  // 4 second cycle
-            const alpha = 0.08 + breathCycle * 0.04;  // Range: 0.04 - 0.12
+            // Individual breathing offset for each ray
+            const individualBreath = Math.sin(time / 6000 + i * 0.7) * 0.5 + 0.5;
+            const combinedBreath = (globalBreath * 0.6 + individualBreath * 0.4);
+
+            // Very soft alpha range (0.02 - 0.06)
+            const baseAlpha = 0.02 + combinedBreath * 0.04;
 
             const endX = sunX + Math.cos(angle) * rayLength;
             const endY = sunY + Math.sin(angle) * rayLength;
 
-            // Ray width at sun vs at end
-            const sunWidth = 20;
-            const endWidth = 80;
+            // Draw MULTIPLE layers per ray to simulate soft edges (like gradient)
+            // Layer 1: Outermost (widest, most transparent)
+            this.atmosphereGraphics.fillStyle(0xFFFAE0, baseAlpha * 0.3);
+            this.drawSingleRay(sunX, sunY, endX, endY, 35, 120);
 
-            // Draw tapered ray triangle
-            this.atmosphereGraphics.fillStyle(0xFFFAE0, alpha);
-            this.atmosphereGraphics.beginPath();
-            this.atmosphereGraphics.moveTo(sunX - sunWidth, sunY);
-            this.atmosphereGraphics.lineTo(sunX + sunWidth, sunY);
-            this.atmosphereGraphics.lineTo(endX + endWidth, endY);
-            this.atmosphereGraphics.lineTo(endX - endWidth, endY);
-            this.atmosphereGraphics.closePath();
-            this.atmosphereGraphics.fillPath();
+            // Layer 2: Middle
+            this.atmosphereGraphics.fillStyle(0xFFFAE0, baseAlpha * 0.6);
+            this.drawSingleRay(sunX, sunY, endX, endY, 20, 70);
+
+            // Layer 3: Core (narrowest, most visible)
+            this.atmosphereGraphics.fillStyle(0xFFFFF0, baseAlpha);
+            this.drawSingleRay(sunX, sunY, endX, endY, 10, 40);
         }
 
         this.atmosphereGraphics.setBlendMode(Phaser.BlendModes.NORMAL);
+    }
+
+    private drawSingleRay(sunX: number, sunY: number, endX: number, endY: number, sunWidth: number, endWidth: number) {
+        this.atmosphereGraphics.beginPath();
+        this.atmosphereGraphics.moveTo(sunX - sunWidth, sunY);
+        this.atmosphereGraphics.lineTo(sunX + sunWidth, sunY);
+        this.atmosphereGraphics.lineTo(endX + endWidth, endY);
+        this.atmosphereGraphics.lineTo(endX - endWidth, endY);
+        this.atmosphereGraphics.closePath();
+        this.atmosphereGraphics.fillPath();
     }
 
     private drawStars(width: number, time: number) {
