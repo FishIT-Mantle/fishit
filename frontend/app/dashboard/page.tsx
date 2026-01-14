@@ -10,6 +10,7 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount, useDisconnect } from 'wagmi';
 import SelectZoneModal from "@/components/SelectZoneModal";
 import StakingModal from "@/components/StakingModal";
+import { useMNTBalance, useBaitBalance, useFishCollection } from "@/lib/hooks";
 
 export default function Dashboard() {
     const { isConnected } = useAccount();
@@ -19,6 +20,11 @@ export default function Dashboard() {
     const [showShopModal, setShowShopModal] = useState(false);
     const [showStakeModal, setShowStakeModal] = useState(false);
     const [showZoneModal, setShowZoneModal] = useState(false);
+
+    // Blockchain data hooks
+    const { balanceNumber: mntBalance, isLoading: isMntLoading } = useMNTBalance();
+    const { common: commonBait, rare: rareBait, epic: epicBait, isLoading: isBaitLoading } = useBaitBalance();
+    const { totalCount: fishCount, isLoading: isFishLoading } = useFishCollection();
 
     useEffect(() => {
         const handleScroll = () => {
@@ -230,7 +236,9 @@ export default function Dashboard() {
                                                         <p className="text-white text-base font-medium leading-tight truncate">Common Worm Bait</p>
                                                         <p className="text-white/70 text-xs leading-tight">Legendary Fish Chance: 0.5%</p>
                                                     </div>
-                                                    <span className="text-white text-base font-semibold shrink-0">x12</span>
+                                                    <span className="text-white text-base font-semibold shrink-0">
+                                                        {isBaitLoading ? '...' : `x${commonBait}`}
+                                                    </span>
                                                 </div>
 
                                                 {/* Rare Bait */}
@@ -240,7 +248,9 @@ export default function Dashboard() {
                                                         <p className="text-white text-base font-medium leading-tight truncate">Rare Lure Bait</p>
                                                         <p className="text-white/70 text-xs leading-tight">Legendary Fish Chance: 5%</p>
                                                     </div>
-                                                    <span className="text-white text-base font-semibold shrink-0">x12</span>
+                                                    <span className="text-white text-base font-semibold shrink-0">
+                                                        {isBaitLoading ? '...' : `x${rareBait}`}
+                                                    </span>
                                                 </div>
 
                                                 {/* Epic Bait */}
@@ -250,7 +260,9 @@ export default function Dashboard() {
                                                         <p className="text-white text-base font-medium leading-tight truncate">Epic Gold Bait</p>
                                                         <p className="text-white/70 text-xs leading-tight">Legendary Fish Chance: 5%</p>
                                                     </div>
-                                                    <span className="text-white text-base font-semibold shrink-0">x12</span>
+                                                    <span className="text-white text-base font-semibold shrink-0">
+                                                        {isBaitLoading ? '...' : `x${epicBait}`}
+                                                    </span>
                                                 </div>
                                             </div>
 
@@ -317,7 +329,9 @@ export default function Dashboard() {
                                         </div>
                                         {isConnected ? (
                                             <div>
-                                                <p className="text-[56px] leading-none font-medium text-white mb-6">0</p>
+                                                <p className="text-[56px] leading-none font-medium text-white mb-6">
+                                                    {isFishLoading ? '...' : fishCount}
+                                                </p>
                                                 <p className="text-white/70 text-base mb-2">Fish</p>
                                                 <div className="flex flex-nowrap gap-2">
                                                     <span className="px-3 py-1.5 rounded-full bg-gradient-to-b from-[#ffffff]/30 to-[#ffffff]/10 border border-white/30 backdrop-blur-md text-white text-xs font-medium whitespace-nowrap shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]">Common: 0</span>
@@ -341,7 +355,9 @@ export default function Dashboard() {
                                         </div>
                                         {isConnected ? (
                                             <div>
-                                                <p className="text-[56px] leading-none font-medium text-white mb-1">250</p>
+                                                <p className="text-[56px] leading-none font-medium text-white mb-1">
+                                                    {isMntLoading ? '...' : mntBalance.toFixed(2)}
+                                                </p>
                                                 <p className="text-white/70 text-base">MNT</p>
                                             </div>
                                         ) : (

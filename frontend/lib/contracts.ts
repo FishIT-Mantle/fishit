@@ -1,9 +1,31 @@
-import { parseEther } from 'viem';
+/**
+ * Smart Contract Addresses and ABIs
+ * Addresses are loaded from environment variables for flexibility
+ */
 
-// --- Addresses ---
-export const GAME_ADDRESS = "0xe72c38663d6d55571b612e2b13bb487bc080dac4";
-export const BAIT_ADDRESS = "0x4ec2bec2ad61d5bb667b3ebf79fcf1702a23bcfc";
-export const NFT_ADDRESS  = "0x198501e64c00396636e535d9a2a4a9bd95c18b49";
+// --- Address Validation ---
+const validateAddress = (address: string | undefined, name: string): `0x${string}` => {
+  if (!address || !address.startsWith('0x')) {
+    throw new Error(`Missing or invalid ${name} in environment variables. Check your .env.local file.`);
+  }
+  return address as `0x${string}`;
+};
+
+// --- Addresses (from environment) ---
+export const GAME_ADDRESS = validateAddress(
+  process.env.NEXT_PUBLIC_GAME_ADDRESS,
+  'NEXT_PUBLIC_GAME_ADDRESS'
+);
+
+export const BAIT_ADDRESS = validateAddress(
+  process.env.NEXT_PUBLIC_BAIT_ADDRESS,
+  'NEXT_PUBLIC_BAIT_ADDRESS'
+);
+
+export const NFT_ADDRESS = validateAddress(
+  process.env.NEXT_PUBLIC_NFT_ADDRESS,
+  'NEXT_PUBLIC_NFT_ADDRESS'
+);
 
 // --- ABIs (Minimal interfaces) ---
 
