@@ -89,8 +89,8 @@ export class MainScene extends Phaser.Scene {
         this.load.image('reeling_zone', '/gameplay/rel.webp');
         this.load.image('reeling_indicator', '/gameplay/indikator.webp');
 
-        // Celebration overlay
-        this.load.image('celebration_overlay', '/gameplay/substract.webp');
+        // Celebration overlay (from CDN)
+        this.load.image('celebration_overlay', 'https://cdn.jsdelivr.net/gh/OfficialNovaAI/asset@main/substract.webp');
     }
 
     create() {
@@ -878,13 +878,16 @@ export class MainScene extends Phaser.Scene {
     }
 
     private handleCatchSuccess() {
+        console.log('[MainScene] handleCatchSuccess called!');
         this.reelingManager.stop();
         this.setPhase('CAUGHT');
 
         // Get the caught fish
         const fish = FISH_DATA[Phaser.Math.Between(0, FISH_DATA.length - 1)];
+        console.log('[MainScene] Caught fish:', fish);
 
         // Show celebration overlay
+        console.log('[MainScene] Calling celebrationManager.show()');
         this.celebrationManager.show(fish);
 
         this.spawnConfetti();

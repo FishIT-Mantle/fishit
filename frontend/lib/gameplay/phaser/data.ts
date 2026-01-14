@@ -4,6 +4,7 @@ export interface FishType {
     name: string;
     rarity: 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary';
     weight?: number;
+    value: number; // Coin value when caught
     // Gameplay stats
     speedConfig: [number, number]; // Min/Max speed
     aggression: number; // 0-1, how often it dashes
@@ -58,8 +59,8 @@ export const GAME_CONFIG = {
 };
 
 export const FISH_DATA: FishType[] = [
-    { name: 'Common Trout', rarity: 'Common', speedConfig: [1.5, 3], aggression: 0.1 },
-    { name: 'Silver Bass', rarity: 'Uncommon', speedConfig: [2, 4], aggression: 0.3 },
-    { name: 'Golden Carp', rarity: 'Rare', speedConfig: [2.5, 5], aggression: 0.5 },
-    { name: 'Crystal Swordfish', rarity: 'Epic', speedConfig: [3, 7], aggression: 0.8 }
+    { name: 'Common Trout', rarity: 'Common', value: 10, speedConfig: [1.5, 3], aggression: 0.1 },
+    { name: 'Silver Bass', rarity: 'Uncommon', value: 25, speedConfig: [2, 4], aggression: 0.3 },
+    { name: 'Golden Carp', rarity: 'Rare', value: 50, speedConfig: [2.5, 5], aggression: 0.5 },
+    { name: 'Crystal Swordfish', rarity: 'Epic', value: 100, speedConfig: [3, 7], aggression: 0.8 }
 ];

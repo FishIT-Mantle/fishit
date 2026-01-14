@@ -33,12 +33,17 @@ export class CelebrationManager {
     private setupVisuals() {
         const { width, height } = this.scene.scale;
 
+        console.log('[CelebrationManager] setupVisuals called');
+        console.log('[CelebrationManager] texture exists:', this.scene.textures.exists('celebration_overlay'));
+
         // === OVERLAY (vignette effect) ===
         this.overlay = this.scene.add.image(width / 2, height / 2, 'celebration_overlay');
         this.overlay.setDepth(100);
         this.overlay.setDisplaySize(width, height);
         this.overlay.setAlpha(0);
         this.overlay.setVisible(false);
+
+        console.log('[CelebrationManager] overlay created:', this.overlay);
 
         // === TEXT BOX BACKGROUND ===
         this.textBox = this.scene.add.graphics();
@@ -74,15 +79,19 @@ export class CelebrationManager {
     }
 
     public show(fish: FishType) {
-        if (this.isActive) return;
+        console.log('[CelebrationManager] show() called with fish:', fish);
+        if (this.isActive) {
+            console.log('[CelebrationManager] already active, returning');
+            return;
+        }
 
         this.isActive = true;
         this.currentFish = fish;
         const { width, height } = this.scene.scale;
 
-        // Reset positions
+        // Reset positions and size
         this.overlay.setPosition(width / 2, height / 2);
-        this.overlay.setDisplaySize(width * 1.2, height * 1.2);  // Slightly larger for pulse
+        this.overlay.setDisplaySize(width, height);
         this.catchText.setPosition(width / 2, height * 0.35);
         this.fishCard.setPosition(width / 2, height * 0.55);
 
@@ -107,21 +116,24 @@ export class CelebrationManager {
         this.fishCardText.setText(`🐟 ${fish.name}\n\nRarity: ${fish.rarity}\nValue: ${fish.value} coins`);
 
         // === ANIMATION SEQUENCE ===
+        console.log('[CelebrationManager] Starting animation sequence');
 
-        // 1. Show overlay with fade in
+        // 1. Show overlay immediately with fade in
         this.overlay.setVisible(true);
         this.overlay.setAlpha(0);
-        this.overlay.setScale(1.1);
+
+        console.log('[CelebrationManager] Overlay set visible, starting tween');
 
         this.scene.tweens.add({
             targets: this.overlay,
             alpha: 1,
-            scale: 1,
             duration: 300,
-            ease: 'Power2.easeOut'
+            ease: 'Power2.easeOut',
+            onStart: () => console.log('[CelebrationManager] Overlay tween started'),
+            onComplete: () => console.log('[CelebrationManager] Overlay tween complete')
         });
 
-        // 2. Start pulse effect on overlay
+        // 2. Start pulse effect on overlay (subtle breathing)
         this.pulseTween = this.scene.tweens.add({
             targets: this.overlay,
             scaleX: 1.02,
