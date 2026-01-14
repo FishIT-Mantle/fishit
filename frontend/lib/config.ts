@@ -1,12 +1,13 @@
-import {
-  getDefaultConfig,
-  Chain,
-} from '@rainbow-me/rainbowkit';
-import { mantle } from 'wagmi/chains';
+import { getDefaultConfig } from '@rainbow-me/rainbowkit';
+import { mantleSepoliaTestnet } from 'wagmi/chains';
+import { http } from 'wagmi';
 
 export const config = getDefaultConfig({
   appName: 'FishIt',
-  projectId: 'YOUR_PROJECT_ID', // TODO: User needs to replace this
-  chains: [mantle],
-  ssr: true, // If your dApp uses server side rendering (SSR)
+  projectId: 'YOUR_PROJECT_ID', // Get one from https://cloud.walletconnect.com (Optional for local dev)
+  chains: [mantleSepoliaTestnet],
+  transports: {
+    [mantleSepoliaTestnet.id]: http(),
+  },
+  ssr: true,
 });
