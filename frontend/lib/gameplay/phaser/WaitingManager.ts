@@ -6,6 +6,8 @@ import { GAME_CONFIG } from './data';
  * 
  * Features:
  * - Visual "LURE" button that player can tap
+ * - Moving button: slides to random position on tap
+ * - Difficulty scaling: movement speed increases over time
  * - Tap-to-lure: reduces wait time and plays rod twitch animation
  * - Timer-based fish arrival (simulates VRF delay)
  * - Glow ring visual feedback
@@ -28,8 +30,21 @@ export class WaitingManager {
     private lureCooldown: number = 0;
     private lureCooldownMax: number = 300; // 300ms between taps
 
+    // Moving button state
+    private buttonX: number = 0;
+    private buttonY: number = 0;
+    private targetX: number = 0;
+    private targetY: number = 0;
+    private isMoving: boolean = false;
+    private moveSpeed: number = 0.08;        // Base lerp speed (0-1)
+    private elapsedTime: number = 0;         // Time since start (for difficulty scaling)
+    private readonly BUTTON_RADIUS: number = 70;
+    private readonly MIN_MOVE_DISTANCE: number = 100;  // Min distance to move
+    private readonly MAX_MOVE_SPEED: number = 0.25;    // Max lerp speed at hardest
+
     // Visual state
     private pulseIntensity: number = 0;
+    private buttonScale: number = 1;
 
     // Callback
     private onStrike?: () => void;
@@ -43,7 +58,12 @@ export class WaitingManager {
         const { width, height } = this.scene.scale;
         const cx = width / 2;
         const cy = height * 0.75;
-        const radius = 70;
+
+        // Initialize position
+        this.buttonX = cx;
+        this.buttonY = cy;
+        this.targetX = cx;
+        this.targetY = cy;
 
         // Glow Ring
         this.glowRing = this.scene.add.graphics();
@@ -70,9 +90,9 @@ export class WaitingManager {
             color: '#FFFFFF'
         }).setOrigin(0.5).setDepth(12).setVisible(false).setAlpha(0.7);
 
-        // Make button interactive
+        // Make button interactive (we'll update hitbox position in updateVisuals)
         this.lureButton.setInteractive(
-            new Phaser.Geom.Circle(cx, cy, radius),
+            new Phaser.Geom.Circle(cx, cy, this.BUTTON_RADIUS),
             Phaser.Geom.Circle.Contains
         );
 
@@ -84,6 +104,17 @@ export class WaitingManager {
     public start(onStrike?: () => void) {
         this.isActive = true;
         this.onStrike = onStrike;
+        this.elapsedTime = 0;
+        this.buttonScale = 1;
+        this.isMoving = false;
+
+        const { width, height } = this.scene.scale;
+
+        // Reset button to center
+        this.buttonX = width / 2;
+        this.buttonY = height * 0.75;
+        this.targetX = this.buttonX;
+        this.targetY = this.buttonY;
 
         // Random wait time
         this.waitTimer = Phaser.Math.Between(this.minWaitTime, this.maxWaitTime);
@@ -113,7 +144,49 @@ export class WaitingManager {
     }
 
     /**
+     * Get a random position within safe bounds
+     */
+    private getRandomPosition(): { x: number; y: number } {
+        const { width, height } = this.scene.scale;
+
+        // Safe area margins
+        const marginX = 120;
+        const marginTop = height * 0.4;    // Don't go too high (avoid UI)
+        const marginBottom = 120;
+
+        let newX: number;
+        let newY: number;
+        let distance: number;
+        let attempts = 0;
+
+        // Keep trying until we get a position far enough away
+        do {
+            newX = Phaser.Math.Between(marginX, width - marginX);
+            newY = Phaser.Math.Between(marginTop, height - marginBottom);
+            distance = Phaser.Math.Distance.Between(this.buttonX, this.buttonY, newX, newY);
+            attempts++;
+        } while (distance < this.MIN_MOVE_DISTANCE && attempts < 10);
+
+        return { x: newX, y: newY };
+    }
+
+    /**
+     * Calculate current move speed based on elapsed time (difficulty scaling)
+     */
+    private getCurrentMoveSpeed(): number {
+        // Speed increases over time: starts slow, gets faster
+        const maxTime = 10000; // 10 seconds to reach max speed
+        const progress = Math.min(this.elapsedTime / maxTime, 1);
+
+        // Eased progression (slower at start, faster increase later)
+        const easedProgress = progress * progress;
+
+        return this.moveSpeed + (this.MAX_MOVE_SPEED - this.moveSpeed) * easedProgress;
+    }
+
+    /**
      * Tap-to-Lure: Called when player taps the lure button
+     * - Moves button to new random position
      * - Reduces wait timer
      * - Plays rod twitch animation
      * - Emits splash particles
@@ -127,6 +200,22 @@ export class WaitingManager {
 
         // Set cooldown
         this.lureCooldown = this.lureCooldownMax;
+
+        // === MOVING BUTTON FEATURE ===
+        // 1. Shrink animation (anticipation)
+        this.scene.tweens.add({
+            targets: this,
+            buttonScale: 0.7,
+            duration: 80,
+            ease: 'Power2.easeIn',
+            onComplete: () => {
+                // 2. Set new target position
+                const newPos = this.getRandomPosition();
+                this.targetX = newPos.x;
+                this.targetY = newPos.y;
+                this.isMoving = true;
+            }
+        });
 
         // Visual feedback - button pulse
         this.pulseIntensity = 1.5;
@@ -192,10 +281,8 @@ export class WaitingManager {
     public update(time: number, delta: number) {
         if (!this.isActive) return;
 
-        const { width, height } = this.scene.scale;
-        const cx = width / 2;
-        const cy = height * 0.75;
-        const radius = 70;
+        // Track elapsed time for difficulty scaling
+        this.elapsedTime += delta;
 
         // Update cooldown
         if (this.lureCooldown > 0) {
@@ -215,11 +302,53 @@ export class WaitingManager {
             return;
         }
 
+        // === SMOOTH SLIDE MOVEMENT ===
+        if (this.isMoving) {
+            const speed = this.getCurrentMoveSpeed();
+
+            // Lerp towards target
+            this.buttonX = Phaser.Math.Linear(this.buttonX, this.targetX, speed);
+            this.buttonY = Phaser.Math.Linear(this.buttonY, this.targetY, speed);
+
+            // Check if arrived
+            const distance = Phaser.Math.Distance.Between(
+                this.buttonX, this.buttonY,
+                this.targetX, this.targetY
+            );
+
+            if (distance < 2) {
+                this.buttonX = this.targetX;
+                this.buttonY = this.targetY;
+                this.isMoving = false;
+
+                // 3. Bounce scale on arrival
+                this.scene.tweens.add({
+                    targets: this,
+                    buttonScale: 1.15,
+                    duration: 100,
+                    ease: 'Power2.easeOut',
+                    yoyo: true,
+                    onComplete: () => {
+                        this.buttonScale = 1;
+                    }
+                });
+            }
+        }
+
+        // Update interactive hitbox position
+        this.lureButton.input!.hitArea = new Phaser.Geom.Circle(
+            this.buttonX,
+            this.buttonY,
+            this.BUTTON_RADIUS * this.buttonScale
+        );
+
         // Update visuals
-        this.updateVisuals(cx, cy, radius);
+        this.updateVisuals();
     }
 
-    private updateVisuals(cx: number, cy: number, radius: number) {
+    private updateVisuals() {
+        const radius = this.BUTTON_RADIUS * this.buttonScale;
+
         // Clear and redraw
         this.glowRing.clear();
         this.lureButton.clear();
@@ -229,26 +358,31 @@ export class WaitingManager {
         const glowSize = radius + this.pulseIntensity * 20;
 
         this.glowRing.fillStyle(GAME_CONFIG.SHAKE.RIPPLE_COLOR, glowAlpha);
-        this.glowRing.fillCircle(cx, cy, glowSize);
+        this.glowRing.fillCircle(this.buttonX, this.buttonY, glowSize);
 
         // Button background
         const buttonAlpha = 0.15 + this.pulseIntensity * 0.15;
         this.lureButton.fillStyle(0xFFFFFF, buttonAlpha);
-        this.lureButton.fillCircle(cx, cy, radius);
+        this.lureButton.fillCircle(this.buttonX, this.buttonY, radius);
 
         // Button border
         const borderWidth = 2 + this.pulseIntensity * 2;
         const borderAlpha = 0.5 + this.pulseIntensity * 0.3;
         this.lureButton.lineStyle(borderWidth, 0xFFFFFF, borderAlpha);
-        this.lureButton.strokeCircle(cx, cy, radius);
+        this.lureButton.strokeCircle(this.buttonX, this.buttonY, radius);
 
-        // Update text position
-        this.lureText.setPosition(cx, cy);
-        this.timerText.setPosition(cx, cy + 55);
+        // Update text position (follows button)
+        this.lureText.setPosition(this.buttonX, this.buttonY);
+        this.lureText.setScale(this.buttonScale);
+
+        // Timer stays at bottom center
+        const { width, height } = this.scene.scale;
+        this.timerText.setPosition(width / 2, height - 60);
     }
 
     public stop() {
         this.isActive = false;
+        this.isMoving = false;
         this.lureButton.setVisible(false);
         this.lureText.setVisible(false);
         this.glowRing.setVisible(false);
@@ -257,5 +391,6 @@ export class WaitingManager {
         // Kill tweens
         this.scene.tweens.killTweensOf(this.lureButton);
         this.scene.tweens.killTweensOf(this.lureText);
+        this.scene.tweens.killTweensOf(this);
     }
 }
