@@ -1,9 +1,15 @@
+"use client";
+
 import { Button } from "@/components/Button";
 import { Zone } from "@/lib/gameplay/zones";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import FishingGameWrapper from "./FishingGameWrapper";
 import { FishingGameHandle } from "./FishingGame";
 import { GamePhase } from "@/lib/phaser/MainScene";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useConnectModal } from '@rainbow-me/rainbowkit';
+import { GAME_ADDRESS, GAME_ABI } from "@/lib/contracts";
+import { CollectionModal } from "@/components/CollectionModal";
 
 interface GameplayViewProps {
     zone: Zone;
@@ -13,11 +19,22 @@ interface GameplayViewProps {
 export function GameplayView({ zone, onOpenShop }: GameplayViewProps) {
     const [isRecentExpanded, setIsRecentExpanded] = useState(false);
     const [isBaitsExpanded, setIsBaitsExpanded] = useState(true);
-    const [selectedBaitId, setSelectedBaitId] = useState<string | null>("epic-gold");
+    const [selectedBaitId, setSelectedBaitId] = useState<string | null>("common-worm");
     const [recentCatches, setRecentCatches] = useState<{ name: string; rarity: string }[]>([]);
     const [gamePhase, setGamePhase] = useState<GamePhase>('IDLE');
 
+    const [isCollectionOpen, setIsCollectionOpen] = useState(false);
     const fishingGameRef = useRef<FishingGameHandle>(null);
+
+    // Blockchain Hooks
+    const { isConnected } = useAccount();
+    const { openConnectModal } = useConnectModal();
+    const { writeContract, data: hash, error: writeError } = useWriteContract();
+
+    // Watch for transaction confirmation
+    const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+        hash,
+    });
 
     const baits = [
         {
@@ -26,7 +43,8 @@ export function GameplayView({ zone, onOpenShop }: GameplayViewProps) {
             icon: "🐠",
             count: 5,
             chance: "Legendary Fish Chance: 5%",
-            type: "epic"
+            type: "epic",
+            contractValue: 2
         },
         {
             id: "common-worm",
@@ -34,15 +52,41 @@ export function GameplayView({ zone, onOpenShop }: GameplayViewProps) {
             icon: "🪱",
             count: 12,
             chance: "Legendary Fish Chance: 0.5%",
-            type: "common"
+            type: "common",
+            contractValue: 0
         }
     ];
 
     const handleCastLine = useCallback(() => {
-        if (fishingGameRef.current && gamePhase === 'IDLE') {
-            fishingGameRef.current.castLine();
+        if (!isConnected) {
+            if (openConnectModal) openConnectModal();
+            return;
         }
-    }, [gamePhase]);
+
+        const selectedBait = baits.find(b => b.id === selectedBaitId);
+        const baitValue = selectedBait ? selectedBait.contractValue : 0;
+        const zoneValue = 0;
+
+        console.log(`🎣 Casting Line... Bait: ${baitValue}, Zone: ${zoneValue}`);
+
+        writeContract({
+            address: GAME_ADDRESS,
+            abi: GAME_ABI,
+            functionName: 'castLine',
+            args: [baitValue, zoneValue],
+        }, {
+            onSuccess: () => {
+                console.log("✅ Transaction sent! Starting animation...");
+                if (fishingGameRef.current && gamePhase === 'IDLE') {
+                    fishingGameRef.current.castLine();
+                }
+            },
+            onError: (err) => {
+                console.error("❌ User rejected or tx failed:", err);
+            }
+        });
+
+    }, [isConnected, selectedBaitId, gamePhase, writeContract, openConnectModal]);
 
     const handlePhaseChange = useCallback((phase: GamePhase) => {
         setGamePhase(phase);
@@ -56,7 +100,23 @@ export function GameplayView({ zone, onOpenShop }: GameplayViewProps) {
         console.log('Fish got away!');
     }, []);
 
-    // Hide Cast button during active fishing
+    useEffect(() => {
+        if (isConfirming) console.log("⏳ Transaction confirming...");
+        if (isConfirmed) console.log("🎉 Transaction confirmed on block!");
+        if (writeError) {
+            console.error("🚨 Write Error:", writeError);
+            // Show user-friendly error message
+            if (writeError.message.includes("rate limited")) {
+                alert("⏰ Please wait before casting again! The contract has a cooldown period.");
+            }
+        }
+    }, [isConfirming, isConfirmed, writeError]);
+
+    // Debug: Log when modal state changes
+    useEffect(() => {
+        console.log("🐟 Collection Modal Open:", isCollectionOpen);
+    }, [isCollectionOpen]);
+
     const showCastButton = gamePhase === 'IDLE' || gamePhase === 'CAUGHT' || gamePhase === 'FAILED';
 
     return (
@@ -175,9 +235,9 @@ export function GameplayView({ zone, onOpenShop }: GameplayViewProps) {
                                             <div className="flex-1">
                                                 <p className="text-white text-sm font-medium">{fish.name}</p>
                                                 <p className={`text-xs ${fish.rarity === 'Epic' ? 'text-purple-400' :
-                                                        fish.rarity === 'Rare' ? 'text-blue-400' :
-                                                            fish.rarity === 'Uncommon' ? 'text-green-400' :
-                                                                'text-white/50'
+                                                    fish.rarity === 'Rare' ? 'text-blue-400' :
+                                                        fish.rarity === 'Uncommon' ? 'text-green-400' :
+                                                            'text-white/50'
                                                     }`}>{fish.rarity}</p>
                                             </div>
                                         </div>
@@ -205,15 +265,42 @@ export function GameplayView({ zone, onOpenShop }: GameplayViewProps) {
                     <div className="mt-auto w-full flex justify-center pb-12 z-20 pointer-events-auto">
                         <Button
                             onClick={handleCastLine}
-                            className="!w-[340px] !h-[64px] !text-xl !font-bold shadow-[0_4px_30px_rgba(84,72,232,0.6)] border-t border-white/20 animate-bounce-subtle !rounded-[24px]"
+                            disabled={isConfirming || !isConnected}
+                            className="!w-[340px] !h-[64px] !text-xl !font-bold shadow-[0_4px_30px_rgba(84,72,232,0.6)] border-t border-white/20 animate-bounce-subtle !rounded-[24px] disabled:opacity-50 disabled:animate-none"
                         >
-                            Cast Line
+                            {isConfirming ? "Confirming..." : "Cast Line"}
                         </Button>
                     </div>
                 )}
 
             </div>
+
+            {/* CENTER WIDGET: COLLECTION BUTTON - MUST have pointer-events-auto */}
+            <div className="absolute top-8 left-1/2 -translate-x-1/2 z-50 pointer-events-auto">
+                <button
+                    onClick={() => {
+                        console.log("🎒 MY FISH BUTTON CLICKED!");
+                        setIsCollectionOpen(true);
+                    }}
+                    className="flex items-center gap-2 px-6 py-3 bg-black/40 backdrop-blur-xl border border-white/20 rounded-full hover:bg-white/10 transition-all hover:scale-105 active:scale-95 group"
+                >
+                    <span className="text-2xl group-hover:rotate-12 transition-transform">🎒</span>
+                    <span className="font-bold text-white tracking-wide">My Fish</span>
+                </button>
+            </div>
+
+            {/* COLLECTION MODAL - CRITICAL: Must be outside pointer-events-none container and have explicit z-index */}
+            {isCollectionOpen && (
+                <div className="fixed inset-0 z-[9999] pointer-events-auto">
+                    <CollectionModal 
+                        isOpen={isCollectionOpen} 
+                        onClose={() => {
+                            console.log("🚪 CLOSING MODAL");
+                            setIsCollectionOpen(false);
+                        }} 
+                    />
+                </div>
+            )}
         </div>
     );
 }
-
