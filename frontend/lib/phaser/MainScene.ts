@@ -3,6 +3,7 @@ import { ZoneConfig } from '../gameplay/zones';
 import { GAME_CONFIG, FISH_DATA } from '../gameplay/phaser/data';
 import { WaitingManager } from '../gameplay/phaser/WaitingManager';
 import { ReelingManager } from '../gameplay/phaser/ReelingManager';
+import { CelebrationManager } from '../gameplay/phaser/CelebrationManager';
 
 export type GamePhase = 'IDLE' | 'CASTING' | 'WAITING' | 'STRIKE' | 'REELING' | 'CAUGHT' | 'FAILED';
 
@@ -47,6 +48,7 @@ export class MainScene extends Phaser.Scene {
     // Managers
     private waitingManager!: WaitingManager;
     private reelingManager!: ReelingManager;
+    private celebrationManager!: CelebrationManager;
 
     // State
     private currentPhase: GamePhase = 'IDLE';
@@ -81,6 +83,14 @@ export class MainScene extends Phaser.Scene {
 
         this.load.image('boat', this.config.boatUrl || '/gameplay/kapal.webp');
         this.load.image('rod', this.config.rodUrl || '/gameplay/pancingan.webp');
+
+        // Reeling UI assets
+        this.load.image('reeling_bar', '/gameplay/bar.webp');
+        this.load.image('reeling_zone', '/gameplay/rel.webp');
+        this.load.image('reeling_indicator', '/gameplay/indikator.webp');
+
+        // Celebration overlay
+        this.load.image('celebration_overlay', '/gameplay/substract.webp');
     }
 
     create() {
@@ -124,6 +134,7 @@ export class MainScene extends Phaser.Scene {
         // === MANAGERS ===
         this.waitingManager = new WaitingManager(this);
         this.reelingManager = new ReelingManager(this);
+        this.celebrationManager = new CelebrationManager(this);
 
         // Initialize effects
         this.nextShootingStarTime = this.time.now + Phaser.Math.Between(5000, 15000);
@@ -870,14 +881,24 @@ export class MainScene extends Phaser.Scene {
         this.reelingManager.stop();
         this.setPhase('CAUGHT');
 
+        // Get the caught fish
+        const fish = FISH_DATA[Phaser.Math.Between(0, FISH_DATA.length - 1)];
+
+        // Show celebration overlay
+        this.celebrationManager.show(fish);
+
         this.spawnConfetti();
         this.triggerHaptic([50, 30, 50, 30, 100]);
 
-        const fish = FISH_DATA[0];
         this.bobber.setVisible(false);
         this.config.onCatchSuccess?.({ name: fish.name, rarity: fish.rarity });
 
-        this.time.delayedCall(3000, () => this.setPhase('IDLE'));
+        // Hide celebration and return to idle after delay
+        this.time.delayedCall(3500, () => {
+            this.celebrationManager.hide(() => {
+                this.setPhase('IDLE');
+            });
+        });
     }
 
     private handleCatchFail() {

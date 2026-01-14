@@ -2,23 +2,26 @@ import Phaser from 'phaser';
 import { GAME_CONFIG, FishType } from './data';
 
 /**
- * ReelingManager - Handles the fishing/reeling phase
+ * ReelingManager - Asset-Based Reeling UI
  * 
- * Features:
- * - Weighty physics with linear interpolation
- * - FPS-independent delta-based calculations
- * - Fish AI with erratic movement based on aggression
- * - Progress bar with color states
+ * Correct Design:
+ * - Bar positioned at BOTTOM of screen
+ * - Player controls REL (blue box) with mouse to catch fish
+ * - INDICATOR (white bar + fish icon) = fish AI that moves randomly
+ * - Overlap = catching progress increases
  */
 export class ReelingManager {
     private scene: Phaser.Scene;
 
-    // UI Elements
-    private tensionBar!: Phaser.GameObjects.Graphics;
+    // Asset-based UI Elements
+    private barBackground!: Phaser.GameObjects.Image;
+    private playerZone!: Phaser.GameObjects.Image;     // rel.webp - PLAYER controls
+    private fishIndicator!: Phaser.GameObjects.Image;  // indikator.webp - FISH AI
+
+    // Progress UI (kept as graphics for dynamic fill)
     private progressBar!: Phaser.GameObjects.Graphics;
-    private fishIcon!: Phaser.GameObjects.Graphics;
-    private reelZone!: Phaser.GameObjects.Graphics;
     private fishLabel!: Phaser.GameObjects.Text;
+    private instructionText!: Phaser.GameObjects.Text;
 
     // Game State
     private isActive: boolean = false;
@@ -26,20 +29,18 @@ export class ReelingManager {
     private currentFish: FishType | null = null;
 
     // Physics State
-    private reelX: number = 0;
-    private reelVelocity: number = 0;
-
-    // Fish AI State
-    private fishX: number = 0;
+    private playerX: number = 0;          // Player-controlled (rel.webp)
+    private fishX: number = 0;            // Fish AI (indikator.webp)
     private fishVelocity: number = 0;
     private fishTargetVelocity: number = 0;
     private directionChangeTimer: number = 0;
 
     // Config
-    private readonly LERP_FACTOR = 0.08;        // Lower = heavier feel (0.05-0.15 range)
+    private readonly LERP_FACTOR = 0.12;        // Player zone smoothing
     private readonly FISH_LERP = 0.04;          // Fish movement smoothing
-    private readonly ZONE_WIDTH = 100;          // Capture zone width
-    private readonly FISH_RADIUS = 20;
+    private readonly BAR_Y_OFFSET = 80;         // Distance from bottom
+    private barWidth: number = 0;
+    private barCenterY: number = 0;
 
     constructor(scene: Phaser.Scene) {
         this.scene = scene;
@@ -47,17 +48,64 @@ export class ReelingManager {
     }
 
     private setupVisuals() {
-        // All graphics hidden by default
-        this.tensionBar = this.scene.add.graphics().setDepth(20).setVisible(false);
-        this.progressBar = this.scene.add.graphics().setDepth(20).setVisible(false);
-        this.fishIcon = this.scene.add.graphics().setDepth(21).setVisible(false);
-        this.reelZone = this.scene.add.graphics().setDepth(21).setVisible(false);
+        const { width, height } = this.scene.scale;
 
-        this.fishLabel = this.scene.add.text(0, 0, '', {
-            fontSize: '14px',
+        // Calculate positions
+        this.barCenterY = height - this.BAR_Y_OFFSET;
+
+        // === BAR BACKGROUND (bottom layer) ===
+        this.barBackground = this.scene.add.image(width / 2, this.barCenterY, 'reeling_bar');
+        this.barBackground.setDepth(19);
+        this.barBackground.setVisible(false);
+
+        // Scale bar to fit ~85% of screen width
+        const targetBarWidth = width * 0.85;
+        const barScale = targetBarWidth / this.barBackground.width;
+        this.barBackground.setScale(barScale);
+        this.barWidth = targetBarWidth;
+
+        // === PLAYER ZONE (rel.webp - blue box, player controls) ===
+        this.playerZone = this.scene.add.image(width / 2, this.barCenterY, 'reeling_zone');
+        this.playerZone.setDepth(20);
+        this.playerZone.setVisible(false);
+
+        // Scale player zone - shorter width for challenge
+        const zoneScaleX = 0.15;  // Narrower
+        const zoneScaleY = 0.25;
+        this.playerZone.setScale(zoneScaleX, zoneScaleY);
+
+        // === FISH INDICATOR (indikator.webp - fish AI) ===
+        this.fishIndicator = this.scene.add.image(width / 2, this.barCenterY, 'reeling_indicator');
+        this.fishIndicator.setDepth(21);
+        this.fishIndicator.setVisible(false);
+
+        // Scale fish indicator
+        const indicatorScale = 0.35;
+        this.fishIndicator.setScale(indicatorScale);
+
+        // === PROGRESS BAR (top) ===
+        this.progressBar = this.scene.add.graphics();
+        this.progressBar.setDepth(22);
+        this.progressBar.setVisible(false);
+
+        // === FISH LABEL ===
+        this.fishLabel = this.scene.add.text(width / 2, 0, '', {
+            fontSize: '16px',
             fontFamily: 'Arial',
             fontStyle: 'bold',
-            color: '#FFFFFF'
+            color: '#FFFFFF',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5).setDepth(22).setVisible(false);
+
+        // === INSTRUCTION TEXT ===
+        this.instructionText = this.scene.add.text(width / 2, 0, '🎣 Keep the bar on the fish!', {
+            fontSize: '18px',
+            fontFamily: 'Arial',
+            fontStyle: 'bold',
+            color: '#FFFFFF',
+            backgroundColor: '#00000088',
+            padding: { x: 16, y: 8 }
         }).setOrigin(0.5).setDepth(22).setVisible(false);
     }
 
@@ -66,205 +114,163 @@ export class ReelingManager {
         this.currentFish = fish;
         this.catchProgress = 30; // Start with 30% progress
 
-        const { width } = this.scene.scale;
+        const { width, height } = this.scene.scale;
+        this.barCenterY = height - this.BAR_Y_OFFSET;
 
         // Reset positions - center
-        this.reelX = width / 2;
-        this.reelVelocity = 0;
+        this.playerX = width / 2;
         this.fishX = width / 2;
         this.fishVelocity = 0;
         this.fishTargetVelocity = 0;
         this.directionChangeTimer = 0;
 
+        // Update positions
+        this.barBackground.setPosition(width / 2, this.barCenterY);
+        this.playerZone.setPosition(this.playerX, this.barCenterY);
+        this.fishIndicator.setPosition(this.fishX, this.barCenterY);
+
+        // Position labels
+        this.instructionText.setPosition(width / 2, this.barCenterY - 80);
+        this.fishLabel.setPosition(width / 2, 60);
+        this.fishLabel.setText(`${fish.name} - 30%`);
+
         // Show UI
-        this.tensionBar.setVisible(true);
+        this.barBackground.setVisible(true);
+        this.playerZone.setVisible(true);
+        this.fishIndicator.setVisible(true);
         this.progressBar.setVisible(true);
-        this.fishIcon.setVisible(true);
-        this.reelZone.setVisible(true);
         this.fishLabel.setVisible(true);
-        this.fishLabel.setText(fish.name);
+        this.instructionText.setVisible(true);
     }
 
     public update(delta: number) {
         if (!this.isActive || !this.currentFish) return;
 
         const { width } = this.scene.scale;
-        const deltaSeconds = delta / 1000; // Convert to seconds for FPS-independent physics
+        const deltaSeconds = delta / 1000;
 
-        // --- 1. FISH AI LOGIC ---
+        // --- 1. FISH AI (indikator.webp moves randomly) ---
         this.updateFishAI(width, deltaSeconds);
 
-        // --- 2. PLAYER PHYSICS (Weighty Lerp) ---
-        this.updatePlayerPhysics(width);
+        // --- 2. PLAYER INPUT (rel.webp follows mouse) ---
+        this.updatePlayerInput(width);
 
-        // --- 3. PROGRESS CALCULATION (Delta-based) ---
+        // --- 3. PROGRESS CALCULATION ---
         this.updateProgress(deltaSeconds);
 
-        // --- 4. DRAW UI ---
-        this.drawUI(width);
+        // --- 4. UPDATE UI POSITIONS ---
+        this.updateUI(width);
     }
 
     private updateFishAI(screenWidth: number, deltaSeconds: number) {
         if (!this.currentFish) return;
 
         const fish = this.currentFish;
-        const margin = 120;
+
+        // Calculate movement bounds based on bar width
+        const barLeft = (screenWidth - this.barWidth) / 2 + 80;
+        const barRight = screenWidth - (screenWidth - this.barWidth) / 2 - 80;
 
         // Direction change timer
         this.directionChangeTimer -= deltaSeconds;
 
         if (this.directionChangeTimer <= 0) {
-            // Time to change direction
             const baseSpeed = Phaser.Math.FloatBetween(fish.speedConfig[0], fish.speedConfig[1]);
             const direction = Math.random() > 0.5 ? 1 : -1;
 
-            // Dash chance based on aggression
             let speed = baseSpeed;
             if (Math.random() < fish.aggression) {
                 speed *= 2.5; // Dash!
             }
 
-            this.fishTargetVelocity = direction * speed * 60; // Convert to pixels/second
-
-            // Random time until next direction change
-            this.directionChangeTimer = Phaser.Math.FloatBetween(0.3, 1.5);
+            this.fishTargetVelocity = direction * speed * 60;
+            this.directionChangeTimer = Phaser.Math.FloatBetween(0.4, 1.2);
         }
 
-        // Smooth velocity change (fish has momentum)
+        // Smooth velocity
         this.fishVelocity = Phaser.Math.Linear(this.fishVelocity, this.fishTargetVelocity, this.FISH_LERP);
-
-        // Apply velocity
         this.fishX += this.fishVelocity * deltaSeconds;
 
-        // Wall bounce with margin
-        if (this.fishX < margin) {
-            this.fishX = margin;
+        // Bounce at edges
+        if (this.fishX < barLeft) {
+            this.fishX = barLeft;
             this.fishTargetVelocity = Math.abs(this.fishTargetVelocity);
             this.fishVelocity = Math.abs(this.fishVelocity) * 0.5;
-        } else if (this.fishX > screenWidth - margin) {
-            this.fishX = screenWidth - margin;
+        } else if (this.fishX > barRight) {
+            this.fishX = barRight;
             this.fishTargetVelocity = -Math.abs(this.fishTargetVelocity);
             this.fishVelocity = -Math.abs(this.fishVelocity) * 0.5;
         }
     }
 
-    private updatePlayerPhysics(screenWidth: number) {
+    private updatePlayerInput(screenWidth: number) {
         const pointer = this.scene.input.activePointer;
         const mouseX = pointer.x;
 
-        // Clamp target to valid range
-        const margin = 80;
-        const targetX = Phaser.Math.Clamp(mouseX, margin, screenWidth - margin);
+        // Calculate bounds
+        const barLeft = (screenWidth - this.barWidth) / 2 + 50;
+        const barRight = screenWidth - (screenWidth - this.barWidth) / 2 - 50;
+        const targetX = Phaser.Math.Clamp(mouseX, barLeft, barRight);
 
-        // Weighty lerp interpolation (heavier feel)
-        // Lower LERP_FACTOR = more inertia/weight
-        this.reelX = Phaser.Math.Linear(this.reelX, targetX, this.LERP_FACTOR);
+        // Smooth lerp
+        this.playerX = Phaser.Math.Linear(this.playerX, targetX, this.LERP_FACTOR);
     }
 
     private updateProgress(deltaSeconds: number) {
-        // Check overlap between fish and reel zone
-        const zoneLeft = this.reelX - this.ZONE_WIDTH / 2;
-        const zoneRight = this.reelX + this.ZONE_WIDTH / 2;
-        const fishLeft = this.fishX - this.FISH_RADIUS;
-        const fishRight = this.fishX + this.FISH_RADIUS;
+        // Overlap detection: player zone should contain fish
+        const playerHalfWidth = (this.playerZone.displayWidth / 2) * 0.8;
 
-        const isOverlapping = fishRight > zoneLeft && fishLeft < zoneRight;
+        const playerLeft = this.playerX - playerHalfWidth;
+        const playerRight = this.playerX + playerHalfWidth;
 
-        // Delta-based progress (FPS-independent)
-        const tensionGain = GAME_CONFIG.REEL.TENSION_GAIN * 60; // Per second
-        const tensionLoss = GAME_CONFIG.REEL.TENSION_LOSS * 60; // Per second
+        // Fish center should be within player zone for catching
+        const isOverlapping = this.fishX > playerLeft && this.fishX < playerRight;
+
+        // Progress rates
+        const tensionGain = GAME_CONFIG.REEL.TENSION_GAIN * 60;
+        const tensionLoss = GAME_CONFIG.REEL.TENSION_LOSS * 60;
 
         if (isOverlapping) {
             this.catchProgress += tensionGain * deltaSeconds;
+            // No visual change on assets - progress bar provides feedback
         } else {
             this.catchProgress -= tensionLoss * deltaSeconds;
         }
 
-        // Clamp progress
         this.catchProgress = Phaser.Math.Clamp(this.catchProgress, 0, 100);
     }
 
-    private drawUI(screenWidth: number) {
-        const { height } = this.scene.scale;
-        const barY = 80;
-        const barWidth = GAME_CONFIG.REEL.BAR_WIDTH;
-        const barHeight = 24;
-        const barX = (screenWidth - barWidth) / 2;
+    private updateUI(screenWidth: number) {
+        // Update image positions
+        this.playerZone.setPosition(this.playerX, this.barCenterY);
+        this.fishIndicator.setPosition(this.fishX, this.barCenterY);
 
-        // Clear previous frame
-        this.tensionBar.clear();
+        // Update fish label
+        this.fishLabel.setText(`${this.currentFish?.name || 'Fish'} - ${Math.round(this.catchProgress)}%`);
+
+        // Draw progress bar at top
         this.progressBar.clear();
-        this.reelZone.clear();
-        this.fishIcon.clear();
 
-        // --- Progress Bar Background ---
-        this.tensionBar.fillStyle(0x000000, 0.7);
-        this.tensionBar.fillRoundedRect(barX - 4, barY - 4, barWidth + 8, barHeight + 8, 14);
+        const barWidth = 300;
+        const barHeight = 20;
+        const barX = (screenWidth - barWidth) / 2;
+        const barY = 30;
 
-        // --- Progress Bar Fill ---
+        // Background
+        this.progressBar.fillStyle(0x000000, 0.6);
+        this.progressBar.fillRoundedRect(barX - 3, barY - 3, barWidth + 6, barHeight + 6, 12);
+
+        // Fill
         const fillWidth = (this.catchProgress / 100) * barWidth;
-        let fillColor = GAME_CONFIG.COLORS.TENSION_SAFE;
+        let fillColor = 0x00FF00;  // Green
         if (this.catchProgress < 30) {
-            fillColor = GAME_CONFIG.COLORS.TENSION_CRIT;
+            fillColor = 0xFF4444;  // Red - danger
         } else if (this.catchProgress < 60) {
-            fillColor = GAME_CONFIG.COLORS.TENSION_WARN;
+            fillColor = 0xFFAA00;  // Orange - warning
         }
 
         this.progressBar.fillStyle(fillColor, 1);
-        this.progressBar.fillRoundedRect(barX, barY, fillWidth, barHeight, 12);
-
-        // --- Progress percentage text ---
-        this.fishLabel.setPosition(screenWidth / 2, barY + barHeight + 20);
-        this.fishLabel.setText(`${this.currentFish?.name || 'Fish'} - ${Math.round(this.catchProgress)}%`);
-
-        // --- Fishing Area (below progress bar) ---
-        const fishingAreaY = barY + 70;
-        const fishingAreaHeight = 60;
-
-        // Background track
-        this.tensionBar.fillStyle(0x000000, 0.4);
-        this.tensionBar.fillRoundedRect(80, fishingAreaY, screenWidth - 160, fishingAreaHeight, 10);
-
-        // --- Reel Zone (Player's capture bar) ---
-        const zoneY = fishingAreaY + 5;
-        const zoneHeight = fishingAreaHeight - 10;
-
-        // Check if overlapping for color
-        const zoneLeft = this.reelX - this.ZONE_WIDTH / 2;
-        const zoneRight = this.reelX + this.ZONE_WIDTH / 2;
-        const fishLeft = this.fishX - this.FISH_RADIUS;
-        const fishRight = this.fishX + this.FISH_RADIUS;
-        const isOverlapping = fishRight > zoneLeft && fishLeft < zoneRight;
-
-        // Zone fill
-        this.reelZone.fillStyle(isOverlapping ? 0x00FF00 : 0xFFFFFF, isOverlapping ? 0.4 : 0.2);
-        this.reelZone.fillRoundedRect(this.reelX - this.ZONE_WIDTH / 2, zoneY, this.ZONE_WIDTH, zoneHeight, 8);
-
-        // Zone border
-        this.reelZone.lineStyle(3, isOverlapping ? 0x00FF00 : 0xFFFFFF, 0.8);
-        this.reelZone.strokeRoundedRect(this.reelX - this.ZONE_WIDTH / 2, zoneY, this.ZONE_WIDTH, zoneHeight, 8);
-
-        // --- Fish Icon ---
-        const fishCenterY = fishingAreaY + fishingAreaHeight / 2;
-
-        // Fish glow when caught
-        if (isOverlapping) {
-            this.fishIcon.fillStyle(0xFFD700, 0.3);
-            this.fishIcon.fillCircle(this.fishX, fishCenterY, this.FISH_RADIUS + 8);
-        }
-
-        // Fish body
-        this.fishIcon.fillStyle(0xFFD700, 1);
-        this.fishIcon.fillCircle(this.fishX, fishCenterY, this.FISH_RADIUS);
-
-        // Fish direction indicator
-        const fishDir = this.fishVelocity > 0 ? 1 : -1;
-        this.fishIcon.fillStyle(0xFFA500, 1);
-        this.fishIcon.fillTriangle(
-            this.fishX - fishDir * 25, fishCenterY,
-            this.fishX - fishDir * 35, fishCenterY - 8,
-            this.fishX - fishDir * 35, fishCenterY + 8
-        );
+        this.progressBar.fillRoundedRect(barX, barY, fillWidth, barHeight, 10);
     }
 
     public getProgress(): number {
@@ -273,10 +279,11 @@ export class ReelingManager {
 
     public stop() {
         this.isActive = false;
-        this.tensionBar.setVisible(false);
+        this.barBackground.setVisible(false);
+        this.playerZone.setVisible(false);
+        this.fishIndicator.setVisible(false);
         this.progressBar.setVisible(false);
-        this.fishIcon.setVisible(false);
-        this.reelZone.setVisible(false);
         this.fishLabel.setVisible(false);
+        this.instructionText.setVisible(false);
     }
 }
