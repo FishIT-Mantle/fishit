@@ -1,16 +1,13 @@
 import pinataSDK from '@pinata/sdk';
 import { Readable } from 'stream';
 import dotenv from 'dotenv';
-
 dotenv.config();
 
 /**
  * IPFS Uploader Service using Pinata
  * Handles uploading images and metadata JSON
  */
-
 let pinata;
-
 try {
     pinata = new pinataSDK(
         process.env.PINATA_API_KEY,
@@ -24,7 +21,7 @@ try {
  * Upload image and metadata to IPFS
  * @param {string} base64Image - Raw base64 image string
  * @param {Object} fishMint - Fish mint data object
- * @returns {Promise<string>} IPFS URL of the metadata (tokenURI)
+ * @returns {Promise<Object>} Object with imageCid, metadataCid, and metadataUrl
  */
 export async function uploadComplete(base64Image, fishMint) {
     try {
@@ -36,8 +33,15 @@ export async function uploadComplete(base64Image, fishMint) {
         
         // 2. Upload Metadata
         const metadataCid = await uploadMetadata(fishMint, imageUrl);
-        return `ipfs://${metadataCid}`;
-
+        const metadataUrl = `ipfs://${metadataCid}`;
+        
+        // ✅ FIX: Return object with all required fields
+        return {
+            imageCid,
+            metadataCid,
+            metadataUrl
+        };
+        
     } catch (error) {
         console.error(`❌ Complete upload failed:`, error.message);
         throw error;
@@ -50,27 +54,24 @@ export async function uploadComplete(base64Image, fishMint) {
 export async function uploadImage(base64Image, tokenId) {
     try {
         console.log(`📤 Uploading image for token ${tokenId} to IPFS...`);
-
+        
         // Convert Base64 to Buffer
         const buffer = Buffer.from(base64Image, 'base64');
         
-        // Create a Readable Stream from the buffer (This fixes your error)
+        // Create a Readable Stream from the buffer
         const stream = Readable.from(buffer);
-        
-        // Hack: Add a path property so Pinata knows the filename
         stream.path = `fish-${tokenId}.png`;
-
+        
         const options = {
             pinataMetadata: {
                 name: `FishIt-Img-${tokenId}`
             }
         };
-
+        
         const result = await pinata.pinFileToIPFS(stream, options);
         console.log(`✅ Image uploaded: ${result.IpfsHash}`);
-        
         return result.IpfsHash;
-
+        
     } catch (error) {
         console.error(`❌ Image upload failed for token ${tokenId}:`, error.message);
         throw error;
@@ -95,18 +96,17 @@ export async function uploadMetadata(fishMint, imageUrl) {
                 { trait_type: "Seed", value: random_word }
             ]
         };
-
+        
         const options = {
             pinataMetadata: {
                 name: `FishIt-Meta-${token_id}`
             }
         };
-
+        
         const result = await pinata.pinJSONToIPFS(metadata, options);
         console.log(`✅ Metadata uploaded: ${result.IpfsHash}`);
-        
         return result.IpfsHash;
-
+        
     } catch (error) {
         console.error(`❌ Metadata upload failed:`, error.message);
         throw error;
