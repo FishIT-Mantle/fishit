@@ -10,6 +10,7 @@ import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagm
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { GAME_ADDRESS, GAME_ABI } from "@/lib/contracts";
 import { CollectionModal } from "@/components/CollectionModal";
+import { useBaitBalance } from "@/lib/hooks";
 
 interface GameplayViewProps {
     zone: ZoneConfig;
@@ -30,6 +31,7 @@ export function GameplayView({ zone, onOpenShop }: GameplayViewProps) {
     const { isConnected } = useAccount();
     const { openConnectModal } = useConnectModal();
     const { writeContract, data: hash, error: writeError } = useWriteContract();
+    const { common: commonCount, rare: rareCount, epic: epicCount } = useBaitBalance();
 
     // Watch for transaction confirmation
     const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
@@ -41,16 +43,26 @@ export function GameplayView({ zone, onOpenShop }: GameplayViewProps) {
             id: "epic-gold",
             name: "Epic Gold Bait",
             icon: "🐠",
-            count: 5,
+            count: epicCount,
             chance: "Legendary Fish Chance: 5%",
             type: "epic",
-            contractValue: 2
+            contractValue: 2 // Epic = 2 in smart contract enum (from earlier analysis, wait check Enum again)
+            // Enum in FishBait.sol: Common=0, Rare=1, Epic=2. Correct.
+        },
+        {
+            id: "rare-lure",
+            name: "Rare Lure Bait",
+            icon: "🎣",
+            count: rareCount,
+            chance: "Legendary Fish Chance: 2.5%",
+            type: "rare",
+            contractValue: 1
         },
         {
             id: "common-worm",
             name: "Common Worm Bait",
             icon: "🪱",
-            count: 12,
+            count: commonCount,
             chance: "Legendary Fish Chance: 0.5%",
             type: "common",
             contractValue: 0
